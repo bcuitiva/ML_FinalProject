@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PetWatch — Model Engineering</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <style>
+    :root{
+      --bg:#0a0b0f;--bg2:#0f1118;--surface:#13151e;--surface2:#191c28;
+      --border:#1e2235;--text:#eceef5;--muted:#5a5f7a;
+      --accent:#e8935a;--accent2:#5ab4e8;--accent3:#7de8a0;--danger:#e85a6a;
+      --p3:#7de8a0;
+      --outfit:'Outfit',sans-serif;--dm:'DM Sans',sans-serif;
+      --tr:0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:var(--dm);overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:0.4;}
+
+    /* ── NAV ── */
+    .pw-nav{position:fixed;top:0;left:0;right:0;z-index:900;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,11,15,0.0);backdrop-filter:blur(0px);border-bottom:1px solid transparent;transition:background 0.4s ease,backdrop-filter 0.4s ease,border-color 0.4s ease;}
+    .pw-nav.scrolled{background:rgba(10,11,15,0.92);backdrop-filter:blur(16px);border-bottom-color:var(--border);}
+    .pw-nav-logo{font-family:var(--outfit);font-size:1.2rem;font-weight:800;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:0.5rem;}
+    .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--p3);display:inline-block;animation:pulse-dot 2s ease-in-out infinite;}
+    @keyframes pulse-dot{0%,100%{transform:scale(1);}50%{transform:scale(1.4);opacity:0.7;}}
+    .pw-nav-links{display:flex;align-items:center;gap:0.1rem;list-style:none;}
+    .pw-nav-links a{font-family:var(--dm);font-size:0.7rem;letter-spacing:0.05em;text-transform:uppercase;color:rgba(236,238,245,0.7);text-decoration:none;padding:0.38rem 0.6rem;border-radius:4px;transition:color var(--tr),background var(--tr);white-space:nowrap;}
+    .pw-nav-links a:hover,.pw-nav-links a.active{color:var(--text);background:rgba(255,255,255,0.08);}
+    .phase-badge{font-size:0.56rem;font-weight:600;background:var(--p3);color:#000;padding:0.1rem 0.28rem;border-radius:3px;margin-left:0.2rem;vertical-align:middle;}
+    .pw-nav-cta{font-family:var(--outfit);font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#000;background:var(--p3);padding:0.42rem 0.9rem;border-radius:4px;text-decoration:none;transition:opacity var(--tr);}
+    .pw-nav-cta:hover{opacity:0.85;color:#000;}
+
+    /* ── HERO ── */
+    .page-hero{position:relative;min-height:100vh;display:grid;overflow:hidden;}
+    .hero-bg{position:absolute;inset:0;z-index:0;}
+    .hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center 35%;filter:saturate(0.65) brightness(0.5);}
+    .hero-bg::before{content:'';position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,rgba(10,11,15,0.75) 40%,rgba(10,11,15,0.15) 72%,transparent 100%),linear-gradient(90deg,rgba(10,11,15,0.5) 0%,transparent 65%);z-index:1;}
+    .hero-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 40%,rgba(125,232,160,0.07) 0%,transparent 60%);z-index:2;}
+    .hero-content{position:relative;z-index:3;padding:8rem 5vw 5rem;max-width:960px;width:100%;align-self:end;}
+    .back-link{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(236,238,245,0.5);text-decoration:none;margin-bottom:2.5rem;transition:color var(--tr);}
+    .back-link:hover{color:var(--text);}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.68rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--p3);margin-bottom:1.5rem;opacity:0;animation:fadeUp 0.8s 0.1s ease both;}
+    .hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--p3);}
+    .hero-title{font-family:var(--outfit);font-size:clamp(2.8rem,6vw,5.5rem);font-weight:700;letter-spacing:-0.02em;line-height:1.1;color:var(--text);margin-bottom:1.5rem;opacity:0;animation:fadeUp 0.8s 0.3s ease both;}
+    .hero-title .aw{color:var(--p3);}
+    .hero-desc{font-size:1rem;font-weight:300;color:rgba(236,238,245,0.65);line-height:1.75;max-width:580px;margin-bottom:2.5rem;opacity:0;animation:fadeUp 0.8s 0.5s ease both;}
+    .hero-desc strong{color:var(--text);font-weight:500;}
+    .phase-strip{display:flex;align-items:center;gap:0;opacity:0;animation:fadeUp 0.8s 0.7s ease both;}
+    .phase-step{display:flex;align-items:center;gap:0.4rem;font-size:0.62rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:0.4rem 0.8rem;border:1px solid var(--border);background:rgba(19,21,30,0.7);backdrop-filter:blur(8px);}
+    .phase-step:first-child{border-radius:4px 0 0 4px;}
+    .phase-step:last-child{border-radius:0 4px 4px 0;}
+    .phase-step.done{background:rgba(232,147,90,0.1);border-color:rgba(232,147,90,0.25);color:var(--accent);}
+    .phase-step.current{background:var(--p3);border-color:var(--p3);color:#000;}
+    .phase-step.current .ps-num{color:#000;}
+    .ps-num{font-family:var(--outfit);font-weight:700;font-size:0.58rem;}
+    .scroll-hint{position:absolute;bottom:2rem;right:5vw;z-index:3;display:flex;flex-direction:column;align-items:center;gap:0.5rem;opacity:0;animation:fadeUp 1s 1s ease both;}
+    .scroll-hint span{font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(236,238,245,0.3);}
+    .scroll-line{width:1px;height:48px;background:linear-gradient(180deg,rgba(125,232,160,0.6),transparent);animation:scrollPulse 2s ease-in-out infinite;}
+    @keyframes scrollPulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+
+    /* ── CONTENT ── */
+    .content-wrap{max-width:960px;margin:0 auto;padding:0 5vw;}
+    .section{padding:4.5rem 0;border-bottom:1px solid var(--border);}
+    .section:last-child{border-bottom:none;padding-bottom:4rem;}
+    .sec-eyebrow{font-size:0.62rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--p3);margin-bottom:0.7rem;display:flex;align-items:center;gap:0.4rem;}
+    .sec-eyebrow::before{content:'';width:16px;height:1px;background:var(--p3);}
+    .sec-title{font-family:var(--outfit);font-size:clamp(1.4rem,3vw,2rem);font-weight:700;letter-spacing:-0.02em;line-height:1.2;color:var(--text);margin-bottom:1rem;}
+    .sec-body{font-size:0.88rem;font-weight:300;color:var(--muted);line-height:1.8;max-width:700px;}
+    .sec-body strong{color:var(--text);font-weight:500;}
+
+    /* ── MODEL CARDS ── */
+    .models-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:2rem;}
+    .model-card{background:var(--surface);padding:2rem 2rem 2rem;position:relative;overflow:hidden;transition:background var(--tr);cursor:pointer;}
+    .model-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--mc);transform:scaleY(0);transition:transform 0.4s ease;transform-origin:bottom;}
+    .model-card:hover{background:rgba(255,255,255,0.02);}
+    .model-card:hover::before{transform:scaleY(1);}
+    .mc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;margin-bottom:1rem;}
+    .mc-left{flex:1;}
+    .mc-tag{font-family:var(--outfit);font-size:0.58rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--mc);opacity:0.8;margin-bottom:0.4rem;}
+    .mc-name{font-family:var(--outfit);font-size:1.5rem;font-weight:700;letter-spacing:-0.02em;color:var(--text);line-height:1.1;margin-bottom:0.4rem;}
+    .mc-type{font-size:0.7rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);padding:0.18rem 0.5rem;border:1px solid var(--border);border-radius:3px;display:inline-block;}
+    .mc-desc{font-size:0.83rem;font-weight:300;color:var(--muted);line-height:1.65;margin-top:0.75rem;max-width:500px;}
+    .mc-right{display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem;flex-shrink:0;}
+    .mc-stat-val{font-family:var(--outfit);font-size:1.5rem;font-weight:800;color:var(--mc);line-height:1;}
+    .mc-stat-lbl{font-size:0.58rem;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+
+    /* ── DUAL BUTTONS ── */
+    .mc-actions{display:flex;gap:0.5rem;margin-top:1.25rem;flex-wrap:wrap;}
+    .btn-results{display:inline-flex;align-items:center;gap:0.5rem;font-family:var(--outfit);font-size:0.72rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--mc);background:transparent;border:1px solid var(--mc);padding:0.55rem 1.1rem;border-radius:6px;text-decoration:none;transition:background var(--tr),color var(--tr);cursor:pointer;}
+    .btn-results:hover{background:var(--mc);color:#000;}
+    .btn-results svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
+    .btn-predict{display:inline-flex;align-items:center;gap:0.5rem;font-family:var(--outfit);font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#000;background:var(--mc);border:1px solid var(--mc);padding:0.55rem 1.1rem;border-radius:6px;text-decoration:none;transition:opacity var(--tr);cursor:pointer;}
+    .btn-predict:hover{opacity:0.82;color:#000;}
+    .btn-predict svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;}
+
+    /* ── FEATURES GRID ── */
+    .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-top:1.5rem;}
+    .feat-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:0.9rem 1rem;}
+    .feat-label{font-family:var(--outfit);font-size:0.68rem;font-weight:600;color:var(--p3);margin-bottom:0.2rem;}
+    .feat-col{font-size:0.7rem;font-weight:300;color:var(--muted);}
+
+    /* ══════════════════════════════════════════════════════════
+       EVALUATE YOUR ZONE — PREDICTION FORM
+    ══════════════════════════════════════════════════════════ */
+    .mc-arrow-link{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.72rem;font-weight:500;color:var(--mc);text-decoration:none;margin-top:1.1rem;transition:gap var(--tr),opacity var(--tr);}
+    .mc-arrow-link:hover{gap:0.7rem;opacity:0.8;color:var(--mc);}
+
+    #evaluateSection{
+      padding:5rem 0;
+      border-top:1px solid var(--border);
+    }
+
+    .eval-header{margin-bottom:2.5rem;}
+    .eval-intro{font-size:0.9rem;font-weight:300;color:var(--muted);line-height:1.8;max-width:680px;margin-top:0.5rem;}
+    .eval-intro strong{color:var(--text);font-weight:500;}
+
+    /* Form */
+    .eval-form-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;margin-bottom:2rem;}
+    .form-section-title{font-family:var(--outfit);font-size:0.65rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:1.2rem;padding-bottom:0.6rem;border-bottom:1px solid var(--border);}
+    .inputs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;}
+    .input-group{display:flex;flex-direction:column;gap:0.4rem;}
+    .input-label{font-size:0.72rem;font-weight:500;color:var(--text);}
+    .input-hint{font-size:0.65rem;font-weight:300;color:var(--muted);}
+    .pw-input{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:0.65rem 0.9rem;color:var(--text);font-family:var(--outfit);font-size:0.9rem;font-weight:600;width:100%;outline:none;transition:border-color var(--tr);}
+    .pw-input:focus{border-color:var(--p3);}
+    .pw-input::-webkit-outer-spin-button,.pw-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+    .pw-input::placeholder{color:var(--muted);font-weight:300;font-size:0.8rem;}
+
+    .btn-run{display:flex;align-items:center;justify-content:center;gap:0.6rem;width:100%;font-family:var(--outfit);font-size:0.85rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#000;background:var(--p3);border:none;padding:1rem;border-radius:8px;cursor:pointer;transition:opacity var(--tr),transform var(--tr);}
+    .btn-run:hover{opacity:0.88;transform:translateY(-1px);}
+    .btn-run:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+    .btn-run svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.5;animation:none;}
+    .btn-run.loading svg{animation:spin 1s linear infinite;}
+    @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+    /* Results */
+    .results-wrap{display:none;animation:fadeUp 0.5s ease both;}
+    .results-wrap.visible{display:grid;grid-template-columns:1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+
+    .result-card{background:var(--surface2);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:0.5rem;position:relative;overflow:hidden;}
+    .result-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--rc);}
+    .result-model-tag{font-family:var(--outfit);font-size:0.58rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--rc);opacity:0.8;}
+    .result-model-name{font-family:var(--outfit);font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.5rem;}
+
+    .result-label{font-family:var(--outfit);font-size:2rem;font-weight:900;letter-spacing:-0.04em;line-height:1;}
+    .result-label.HIGH{color:var(--danger);}
+    .result-label.MEDIUM{color:var(--accent);}
+    .result-label.LOW{color:var(--p3);}
+    .result-label.LOWMEDIUM{color:var(--p3);}
+
+    .result-sub{font-size:0.72rem;font-weight:300;color:var(--muted);margin-top:0.2rem;}
+
+    /* Proba bars */
+    .proba-list{display:flex;flex-direction:column;gap:0.6rem;margin-top:1rem;max-width:480px;}
+    .proba-row{display:flex;align-items:center;gap:0.5rem;}
+    .proba-tag{font-size:0.62rem;font-weight:600;width:55px;flex-shrink:0;}
+    .proba-tag.HIGH{color:var(--danger);}
+    .proba-tag.MEDIUM{color:var(--accent);}
+    .proba-tag.LOW{color:var(--p3);}
+    .proba-bar-outer{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+    .proba-bar-inner{height:100%;border-radius:3px;transition:width 0.8s ease;}
+    .proba-bar-inner.HIGH{background:var(--danger);}
+    .proba-bar-inner.MEDIUM{background:var(--accent);}
+    .proba-bar-inner.LOW{background:var(--p3);}
+    .proba-pct{font-family:var(--outfit);font-size:0.65rem;font-weight:600;color:var(--muted);width:32px;text-align:right;flex-shrink:0;}
+
+    /* Error */
+    .eval-error{display:none;background:rgba(232,90,106,0.08);border:1px solid rgba(232,90,106,0.25);border-radius:8px;padding:1rem 1.2rem;margin-top:1rem;}
+    .eval-error p{font-size:0.82rem;color:var(--danger);}
+
+    /* Consensus */
+    .consensus-wrap{display:none;margin-top:1px;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:1.2rem 1.5rem;animation:fadeUp 0.5s 0.3s ease both;}
+    .consensus-wrap.visible{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;}
+    .consensus-label{font-family:var(--outfit);font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);}
+    .consensus-pill{font-family:var(--outfit);font-size:0.8rem;font-weight:700;padding:0.3rem 0.8rem;border-radius:4px;}
+    .consensus-pill.HIGH{background:rgba(232,90,106,0.15);color:var(--danger);border:1px solid rgba(232,90,106,0.3);}
+    .consensus-pill.MEDIUM{background:rgba(232,147,90,0.15);color:var(--accent);border:1px solid rgba(232,147,90,0.3);}
+    .consensus-pill.LOW{background:rgba(125,232,160,0.12);color:var(--p3);border:1px solid rgba(125,232,160,0.25);}
+    .consensus-note{font-size:0.76rem;font-weight:300;color:var(--muted);flex:1;}
+
+    /* ── FOOTER ── */
+    .pw-footer{border-top:1px solid var(--border);padding:2rem 5vw;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+    .footer-brand{font-family:var(--outfit);font-size:0.9rem;font-weight:800;color:var(--text);}
+    .footer-sub{font-size:0.68rem;font-weight:300;color:var(--muted);}
+    .footer-members{display:flex;flex-direction:column;align-items:flex-end;gap:0.18rem;}
+    .footer-member{font-size:0.7rem;font-weight:300;color:var(--muted);}
+    .footer-univ{font-family:var(--outfit);font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-top:0.1rem;}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+    .reveal{opacity:0;transform:translateY(18px);transition:opacity 0.6s ease,transform 0.6s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+
+    @media(max-width:768px){
+      .mc-top{flex-direction:column;}
+      .mc-right{align-items:flex-start;}
+      .inputs-grid{grid-template-columns:1fr 1fr;}
+      .results-wrap.visible{grid-template-columns:1fr;}
+      .feat-grid{grid-template-columns:1fr 1fr;}
+      .scroll-hint{display:none;}
+      .pw-footer{flex-direction:column;align-items:flex-start;}
+      .footer-members{align-items:flex-start;}
+    }
+    @media(max-width:480px){
+      .inputs-grid{grid-template-columns:1fr;}
+      .mc-actions{flex-direction:column;}
+    }
+
+    /* ── Phase accent color ── */
+    .logo-dot{background:#7de8a0 !important;}
+    .phase-badge{background:#7de8a0 !important;color:#000 !important;}
+    .pw-nav-cta{background:#7de8a0 !important;color:#000 !important;}
+    .hero-eyebrow,.section-label{color:#7de8a0 !important;}
+    .hero-eyebrow::before,.section-label::before{background:#7de8a0 !important;}
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="pw-nav" id="navbar">
+  <a href="{{ url_for('home') }}" class="pw-nav-logo"><span class="logo-dot"></span>PetWatch</a>
+  <ul class="pw-nav-links">
+    <li><a href="{{ url_for('businessUnderstanding') }}">Business <span class="phase-badge">P1</span></a></li>
+    <li><a href="{{ url_for('dataEngineering') }}">Data Eng. <span class="phase-badge">P2</span></a></li>
+    <li><a href="{{ url_for('modelEngineering') }}" class="active">Models <span class="phase-badge">P3</span></a></li>
+    <li><a href="{{ url_for('modelEvaluation') }}">Evaluation <span class="phase-badge">P4</span></a></li>
+    <li><a href="{{ url_for('deployment') }}">Deployment <span class="phase-badge">P5</span></a></li>
+    <li><a href="{{ url_for('monitoring') }}">Monitoring <span class="phase-badge">P6</span></a></li>
+  </ul>
+  <a href="#evaluateSection" class="pw-nav-cta" onclick="scrollToEval()">Run Model</a>
+</nav>
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="hero-bg">
+    <img src="{{ url_for('static', filename='img/hero-dog.jpg') }}" alt="Animal welfare"
+      loading="eager" onerror="this.src='https://plus.unsplash.com/premium_photo-1666298864117-ffc36b8e0cc4?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"/>
+  </div>
+  <div class="hero-content">
+    <a href="{{ url_for('home') }}" class="back-link">&#8592; Home</a>
+    <p class="hero-eyebrow">CRISP-ML &middot; Phase 03 of 06</p>
+    <h1 class="hero-title">Model<br><span class="aw">Engineering</span></h1>
+    <p class="hero-desc">Three machine learning algorithms trained on <strong>31 Bogotá localities</strong> to detect abandonment risk patterns — from supervised classification to unsupervised geographic clustering.</p>
+
+    <!-- TWO HERO BUTTONS -->
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:2rem;opacity:0;animation:fadeUp 0.8s 0.65s ease both;">
+      <button onclick="document.getElementById('modelsSection').scrollIntoView({behavior:'smooth',block:'start'})"
+        style="display:inline-flex;align-items:center;gap:0.5rem;font-family:var(--outfit);font-size:0.76rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--p3);background:transparent;border:1px solid var(--p3);padding:0.7rem 1.4rem;border-radius:6px;cursor:pointer;transition:background 0.3s,color 0.3s;"
+        onmouseover="this.style.background='var(--p3)';this.style.color='#000';"
+        onmouseout="this.style.background='transparent';this.style.color='var(--p3)';">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        View Model Results
+      </button>
+      <button onclick="document.getElementById('evaluateSection').scrollIntoView({behavior:'smooth',block:'start'})"
+        style="display:inline-flex;align-items:center;gap:0.5rem;font-family:var(--outfit);font-size:0.76rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#000;background:var(--p3);border:1px solid var(--p3);padding:0.7rem 1.4rem;border-radius:6px;cursor:pointer;transition:opacity 0.3s;"
+        onmouseover="this.style.opacity='0.82';" onmouseout="this.style.opacity='1';">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Evaluate Your Zone
+      </button>
+    </div>
+
+    <div class="phase-strip">
+      <div class="phase-step done"><span class="ps-num">P1</span> Business</div>
+      <div class="phase-step done"><span class="ps-num">P2</span> Data Eng.</div>
+      <div class="phase-step current"><span class="ps-num">P3</span> Models</div>
+      <div class="phase-step"><span class="ps-num">P4</span> Evaluation</div>
+      <div class="phase-step"><span class="ps-num">P5</span> Deployment</div>
+      <div class="phase-step"><span class="ps-num">P6</span> Monitoring</div>
+    </div>
+  </div>
+  <div class="scroll-hint"><div class="scroll-line"></div><span>Scroll</span></div>
+</section>
+
+<div class="content-wrap">
+
+  <!-- MODEL CARDS -->
+  <section class="section reveal" id="modelsSection">
+    <p class="sec-eyebrow">Section 01</p>
+    <h2 class="sec-title">Three algorithms. One problem.</h2>
+    <p class="sec-body">Each model addresses a different analytical dimension of the abandonment risk problem. Click <strong>View full results</strong> to explore training output and locality predictions for each model individually.</p>
+
+    <div class="models-grid">
+
+      <!-- Random Forest -->
+      <a href="{{ url_for('randomForest') }}" class="model-card" style="--mc:#7de8a0;display:block;text-decoration:none;">
+        <div class="mc-top">
+          <div class="mc-left">
+            <p class="mc-tag">Model A &mdash; Supervised</p>
+            <h3 class="mc-name">Random Forest</h3>
+            <span class="mc-type">Multi-class Classification</span>
+            <p class="mc-desc">Ensemble of 100 decision trees predicting HIGH / MEDIUM / LOW abandonment risk per locality. Provides feature importance to identify which variables drive risk most.</p>
+          </div>
+          <div class="mc-right">
+            <div><div class="mc-stat-val">100%</div><div class="mc-stat-lbl">Training accuracy</div></div>
+            <div style="margin-top:0.5rem;"><div class="mc-stat-val">6</div><div class="mc-stat-lbl">Features</div></div>
+          </div>
+        </div>
+        <span class="mc-arrow-link" style="--mc:#7de8a0;">View full results &#8594;</span>
+      </a>
+
+      <!-- Logistic Regression -->
+      <a href="{{ url_for('logisticRegressionPW') }}" class="model-card" style="--mc:#5ab4e8;display:block;text-decoration:none;">
+        <div class="mc-top">
+          <div class="mc-left">
+            <p class="mc-tag">Model B &mdash; Supervised</p>
+            <h3 class="mc-name">Logistic Regression</h3>
+            <span class="mc-type">Binary Classification</span>
+            <p class="mc-desc">Binary classifier (HIGH vs LOW/MEDIUM) with interpretable coefficients and probability scores per locality. Serves as the interpretable baseline for model comparison.</p>
+          </div>
+          <div class="mc-right">
+            <div><div class="mc-stat-val">80.6%</div><div class="mc-stat-lbl">Training accuracy</div></div>
+            <div style="margin-top:0.5rem;"><div class="mc-stat-val">6</div><div class="mc-stat-lbl">Features</div></div>
+          </div>
+        </div>
+        <span class="mc-arrow-link" style="--mc:#5ab4e8;">View full results &#8594;</span>
+      </a>
+
+      <!-- K-Means -->
+      <a href="{{ url_for('kmeans') }}" class="model-card" style="--mc:#e8935a;display:block;text-decoration:none;">
+        <div class="mc-top">
+          <div class="mc-left">
+            <p class="mc-tag">Model C &mdash; Unsupervised</p>
+            <h3 class="mc-name">K-Means Clustering</h3>
+            <span class="mc-type">Geographic Clustering</span>
+            <p class="mc-desc">Groups localities into 3 risk clusters (K=3) based on their welfare profile — without predefined labels. Reveals which cluster your zone resembles most.</p>
+          </div>
+          <div class="mc-right">
+            <div><div class="mc-stat-val">K=3</div><div class="mc-stat-lbl">Clusters</div></div>
+            <div style="margin-top:0.5rem;"><div class="mc-stat-val">6</div><div class="mc-stat-lbl">Features</div></div>
+          </div>
+        </div>
+        <span class="mc-arrow-link" style="--mc:#e8935a;">View full results &#8594;</span>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- SHARED FEATURES -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 02</p>
+    <h2 class="sec-title">Shared feature set — all 3 models</h2>
+    <p class="sec-body">All three models consume the same 6 locality-aggregated welfare indicators derived from the unified dataset. This ensures fair comparison in Phase 4.</p>
+    <div class="feat-grid">
+      <div class="feat-item"><div class="feat-label">Abuse cases attended</div><div class="feat-col">maltrato_atendidos</div></div>
+      <div class="feat-item"><div class="feat-label">Animals seized</div><div class="feat-col">maltrato_aprehendidos</div></div>
+      <div class="feat-item"><div class="feat-label">Vet emergencies</div><div class="feat-col">urgencias</div></div>
+      <div class="feat-item"><div class="feat-label">Microchip registrations</div><div class="feat-col">microchip</div></div>
+      <div class="feat-item"><div class="feat-label">Sterilized animals</div><div class="feat-col">castrados</div></div>
+      <div class="feat-item"><div class="feat-label">Potentially dangerous</div><div class="feat-col">potencialmente_peligroso</div></div>
+    </div>
+  </section>
+
+  <!-- ══ EVALUATE YOUR ZONE ══════════════════════════════════════════════ -->
+  <section id="evaluateSection" class="reveal">
+    <div class="eval-header">
+      <p class="sec-eyebrow">Section 03</p>
+      <h2 class="sec-title">Evaluate Your Zone</h2>
+      <p class="eval-intro">
+        Enter the welfare indicators of any zone and get the abandonment risk prediction from the Random Forest model — the most accurate model in this system.
+      </p>
+    </div>
+
+    <div class="eval-form-wrap">
+      <p class="form-section-title">Zone Welfare Indicators — Random Forest</p>
+      <div class="inputs-grid">
+        <div class="input-group">
+          <label class="input-label">Citizen Reports</label>
+          <span class="input-hint">Number of citizen reports about stray animals</span>
+          <input class="pw-input" type="number" id="in_citizen_reports" placeholder="e.g. 45" min="0"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Abuse Cases</label>
+          <span class="input-hint">Confirmed animal abuse cases in the zone</span>
+          <input class="pw-input" type="number" id="in_abuse_cases" placeholder="e.g. 12" min="0"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Animals Seized</label>
+          <span class="input-hint">Animals apprehended by authorities</span>
+          <input class="pw-input" type="number" id="in_animals_seized" placeholder="e.g. 8" min="0"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Vet Emergencies</label>
+          <span class="input-hint">Emergency veterinary cases attended</span>
+          <input class="pw-input" type="number" id="in_vet_emergencies" placeholder="e.g. 20" min="0"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Microchip Coverage (%)</label>
+          <span class="input-hint">Percentage of animals with microchip (0-99)</span>
+          <input class="pw-input" type="number" id="in_microchip_coverage" placeholder="e.g. 0.25" min="0" max="99" step="0.01"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Sterilization Rate (%)</label>
+          <span class="input-hint">Percentage of sterilized animals (0-99)</span>
+          <input class="pw-input" type="number" id="in_sterilization_rate" placeholder="e.g. 0.40" min="0" max="99" step="0.01"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Stray Density</label>
+          <span class="input-hint">Estimated stray animals per km2</span>
+          <input class="pw-input" type="number" id="in_stray_density" placeholder="e.g. 85.5" min="0" step="0.1"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Prior Cases (6 months)</label>
+          <span class="input-hint">Total cases reported in the last 6 months</span>
+          <input class="pw-input" type="number" id="in_prior_cases_6m" placeholder="e.g. 30" min="0"/>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Institutional Response (days)</label>
+          <span class="input-hint">Average days to institutional response</span>
+          <input class="pw-input" type="number" id="in_institutional_response_days" placeholder="e.g. 7" min="1" max="30"/>
+        </div>
+      </div>
+
+      <button class="btn-run" id="runBtn" onclick="runPrediction()">
+        <svg viewBox="0 0 24 24" id="runIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Run Random Forest
+      </button>
+    </div>
+
+    <div class="eval-error" id="evalError">
+      <p id="evalErrorMsg">Something went wrong. Please try again.</p>
+    </div>
+
+    <!-- Results -->
+    <div class="results-wrap" id="resultsWrap">
+      <!-- RF -->
+      <div class="result-card" style="--rc:#7de8a0;display:flex;flex-direction:row;gap:2.5rem;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex:0 0 auto;min-width:160px;">
+          <p class="result-model-tag">Model A — Random Forest</p>
+          <p class="result-model-name">Multi-class Classification</p>
+          <p class="result-label" id="rf-label">—</p>
+          <p class="result-sub" id="rf-sub">Awaiting prediction</p>
+        </div>
+        <div style="flex:1;min-width:200px;padding-top:1.6rem;">
+          <div class="proba-list" id="rf-proba"></div>
+        </div>
+      </div>
+      <!-- LR (hidden — LR/KMeans available in dedicated pages) -->
+      <div class="result-card" style="--rc:#5ab4e8;display:none;">
+        <p class="result-model-tag">Model B — Logistic Regression</p>
+        <p class="result-model-name">Binary Classification</p>
+        <p class="result-label" id="lr-label">—</p>
+        <p class="result-sub" id="lr-sub">Awaiting prediction</p>
+        <div class="proba-list" id="lr-proba"></div>
+      </div>
+      <!-- KM (hidden) -->
+      <div class="result-card" style="--rc:#e8935a;display:none;">
+        <p class="result-model-tag">Model C — K-Means</p>
+        <p class="result-model-name">Unsupervised Clustering</p>
+        <p class="result-label" id="km-label">—</p>
+        <p class="result-sub" id="km-sub">Awaiting prediction</p>
+      </div>
+    </div>
+
+    <!-- Consensus (hidden for RF-only mode) -->
+    <div class="consensus-wrap" id="consensusWrap" style="display:none;">
+      <span class="consensus-label">Model Consensus</span>
+      <span class="consensus-pill" id="consensusPill">—</span>
+      <span class="consensus-note" id="consensusNote"></span>
+    </div>
+  </section>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="pw-footer">
+  <div><p class="footer-brand">PetWatch</p><p class="footer-sub">Machine Learning &middot; CRISP-ML &middot; Phase 03 — Model Engineering</p></div>
+  <div class="footer-members">
+    <span class="footer-member">Elkin Yamith Almonacid López</span>
+    <span class="footer-member">Brayan David Cuitiva Umbarila</span>
+    <span class="footer-member">Brayan Yair Mendez Rodriguez</span>
+    <span class="footer-univ">Universidad de Cundinamarca</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ── Nav scroll ──────────────────────────────────────────────────────────
+  window.addEventListener('scroll',()=>{
+    document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>80);
+  });
+
+  // ── Scroll reveal ───────────────────────────────────────────────────────
+  const observer = new IntersectionObserver(entries=>{
+    entries.forEach((e,i)=>{
+      if(e.isIntersecting){ setTimeout(()=>e.target.classList.add('visible'),i*80); observer.unobserve(e.target); }
+    });
+  },{threshold:0.01});
+  document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+  // ── Scroll to evaluate section ──────────────────────────────────────────
+  function scrollToEval(model) {
+    document.getElementById('evaluateSection').scrollIntoView({behavior:'smooth', block:'start'});
+    if (model) {
+      setTimeout(()=>{
+        const first = document.getElementById('in_citizen_reports');
+        if(first){ first.focus(); }
+      }, 600);
+    }
+  }
+  function scrollToEvalNav(){
+    scrollToEval();
+    return false;
+  }
+
+  // ── Risk colors ─────────────────────────────────────────────────────────
+  const RISK_COLOR = { HIGH:'var(--danger)', MEDIUM:'var(--accent)', LOW:'var(--p3)', 'LOW/MEDIUM':'var(--p3)' };
+  const BAR_CLASS  = { HIGH:'HIGH', MEDIUM:'MEDIUM', LOW:'LOW', 'LOW/MEDIUM':'LOW' };
+
+  function riskClass(label){ return label.replace('/','').replace(' ',''); }
+
+  // ── Run prediction ──────────────────────────────────────────────────────
+  async function runPrediction() {
+    const btn  = document.getElementById('runBtn');
+    const icon = document.getElementById('runIcon');
+    const err  = document.getElementById('evalError');
+
+    // Gather inputs
+    const payload = {
+      citizen_reports:             parseFloat(document.getElementById('in_citizen_reports').value)             || 0,
+      abuse_cases:                 parseFloat(document.getElementById('in_abuse_cases').value)                 || 0,
+      animals_seized:              parseFloat(document.getElementById('in_animals_seized').value)              || 0,
+      vet_emergencies:             parseFloat(document.getElementById('in_vet_emergencies').value)             || 0,
+      microchip_coverage:          parseFloat(document.getElementById('in_microchip_coverage').value)          || 0,
+      sterilization_rate:          parseFloat(document.getElementById('in_sterilization_rate').value)          || 0,
+      stray_density:               parseFloat(document.getElementById('in_stray_density').value)               || 0,
+      prior_cases_6m:              parseFloat(document.getElementById('in_prior_cases_6m').value)              || 0,
+      institutional_response_days: parseFloat(document.getElementById('in_institutional_response_days').value) || 0,
+    };
+
+    // Loading state
+    btn.disabled = true;
+    btn.classList.add('loading');
+    icon.innerHTML = '<path d="M21 12a9 9 0 11-6.219-8.56"/>';
+    err.style.display = 'none';
+
+    try {
+      const res  = await fetch('/api/predict', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!data.ok) throw new Error(data.error || 'Prediction failed');
+
+      // ── Show results ────────────────────────────────────────────────────
+
+      // Random Forest
+      const rfLabel = data.rf.label;
+      const rfEl    = document.getElementById('rf-label');
+      rfEl.textContent = rfLabel;
+      rfEl.className   = 'result-label ' + riskClass(rfLabel);
+      document.getElementById('rf-sub').textContent = 'Predicted by Random Forest (200 trees, 9 features)';
+
+      const rfProbaEl = document.getElementById('rf-proba');
+      rfProbaEl.innerHTML = '';
+      ['HIGH','MEDIUM','LOW'].forEach(cls => {
+        const pct = data.rf.proba[cls] || 0;
+        rfProbaEl.innerHTML += `
+          <div class="proba-row">
+            <span class="proba-tag ${cls}">${cls}</span>
+            <div class="proba-bar-outer"><div class="proba-bar-inner ${cls}" style="width:0%" data-w="${pct}%"></div></div>
+            <span class="proba-pct">${pct}%</span>
+          </div>`;
+      });
+
+      // LR and KM are hidden — RF only mode
+
+      // Show results grid
+      const wrap = document.getElementById('resultsWrap');
+      wrap.classList.add('visible');
+      wrap.scrollIntoView({behavior:'smooth', block:'nearest'});
+
+      // Animate bars after a tick
+      setTimeout(()=>{
+        document.querySelectorAll('.proba-bar-inner').forEach(b=>b.style.width=b.dataset.w);
+      }, 100);
+
+      // RF-only summary note
+      const noteMap = {
+        HIGH:   'Random Forest predicts HIGH abandonment risk. Immediate institutional attention is recommended.',
+        MEDIUM: 'Random Forest predicts MEDIUM risk. Preventive monitoring is advised for this zone.',
+        LOW:    'Random Forest predicts LOW risk. This zone shows a favorable animal welfare profile.',
+      };
+      const pill = document.getElementById('consensusPill');
+      pill.textContent = rfLabel;
+      pill.className   = 'consensus-pill ' + rfLabel;
+      document.getElementById('consensusNote').textContent = noteMap[rfLabel] || '';
+      const cWrap = document.getElementById('consensusWrap');
+      cWrap.style.display = 'flex';
+      cWrap.classList.add('visible');
+
+    } catch(e) {
+      err.style.display = 'block';
+      document.getElementById('evalErrorMsg').textContent = 'Error: ' + e.message;
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    }
+  }
+
+  // Allow Enter key on inputs
+  document.addEventListener('DOMContentLoaded', ()=>{
+    document.querySelectorAll('.pw-input').forEach(inp=>{
+      inp.addEventListener('keydown', e=>{ if(e.key==='Enter') runPrediction(); });
+    });
+  });
+</script>
+</body>
+</html>
