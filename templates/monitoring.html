@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PetWatch — Monitoring</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0a0b0f;--bg2:#0f1118;--surface:#13151e;--surface2:#191c28;
+      --border:#1e2235;--text:#eceef5;--muted:#5a5f7a;
+      --accent:#e8935a;--accent2:#5ab4e8;--accent3:#7de8a0;--danger:#e85a6a;
+      --phase:#e8d45a;
+      --outfit:'Outfit',sans-serif;--dm:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+      --tr:0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:var(--dm);overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:0.4;}
+
+    /* NAV */
+    .pw-nav{position:fixed;top:0;left:0;right:0;z-index:900;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,11,15,0.0);backdrop-filter:blur(0px);border-bottom:1px solid transparent;transition:background .4s,backdrop-filter .4s,border-color .4s;}
+    .pw-nav.scrolled{background:rgba(10,11,15,0.92);backdrop-filter:blur(16px);border-bottom-color:var(--border);}
+    .pw-nav-logo{font-family:var(--outfit);font-size:1.2rem;font-weight:800;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:.5rem;}
+    .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--phase);display:inline-block;animation:pulse-dot 2s ease-in-out infinite;}
+    @keyframes pulse-dot{0%,100%{transform:scale(1);}50%{transform:scale(1.4);opacity:.7;}}
+    .pw-nav-links{display:flex;align-items:center;gap:.1rem;list-style:none;}
+    .pw-nav-links a{font-family:var(--dm);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:rgba(236,238,245,.7);text-decoration:none;padding:.38rem .6rem;border-radius:4px;transition:color var(--tr),background var(--tr);white-space:nowrap;}
+    .pw-nav-links a:hover,.pw-nav-links a.active{color:var(--text);background:rgba(255,255,255,.08);}
+    .phase-badge{font-size:.56rem;font-weight:600;background:var(--phase);color:#000;padding:.1rem .28rem;border-radius:3px;margin-left:.2rem;vertical-align:middle;}
+    .pw-nav-cta{font-family:var(--outfit);font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#000;background:var(--phase);padding:.42rem .9rem;border-radius:4px;text-decoration:none;transition:opacity var(--tr);}
+    .pw-nav-cta:hover{opacity:.85;color:#000;}
+    .pw-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;}
+    .pw-hamburger span{width:22px;height:2px;background:var(--text);border-radius:2px;}
+    .mobile-nav-drawer{display:none;position:fixed;top:64px;left:0;right:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:1.5rem 2rem;z-index:800;flex-direction:column;gap:.5rem;}
+    .mobile-nav-drawer.open{display:flex;}
+    .mobile-nav-drawer a{font-size:.82rem;color:var(--muted);text-decoration:none;padding:.5rem 0;border-bottom:1px solid var(--border);}
+
+    /* HERO */
+    .page-hero{position:relative;min-height:100vh;display:grid;overflow:hidden;}
+    .hero-bg{position:absolute;inset:0;z-index:0;}
+    .hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center 30%;filter:saturate(.4) brightness(.38);}
+    .hero-bg::before{content:'';position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,rgba(10,11,15,.75) 40%,rgba(10,11,15,.15) 72%,transparent 100%),linear-gradient(90deg,rgba(10,11,15,.5) 0%,transparent 65%);z-index:1;}
+    .hero-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 40%,rgba(232,212,90,.06) 0%,transparent 60%);z-index:2;}
+    .hero-content{position:relative;z-index:3;padding:8rem 5vw 5rem;max-width:960px;width:100%;align-self:end;}
+    .back-link{display:inline-flex;align-items:center;gap:.4rem;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(236,238,245,.5);text-decoration:none;margin-bottom:2.5rem;transition:color var(--tr);}
+    .back-link:hover{color:var(--text);}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:.5rem;font-size:.68rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--phase);margin-bottom:1.5rem;opacity:0;animation:fadeUp .8s .1s ease both;}
+    .hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--phase);}
+    .hero-title{font-family:var(--outfit);font-size:clamp(2.8rem,6vw,5.5rem);font-weight:700;letter-spacing:-.02em;line-height:1.1;color:var(--text);margin-bottom:1.5rem;opacity:0;animation:fadeUp .8s .3s ease both;}
+    .hero-title .aw{color:var(--phase);}
+    .hero-desc{font-size:1rem;font-weight:300;color:rgba(236,238,245,.65);line-height:1.75;max-width:580px;margin-bottom:2.5rem;opacity:0;animation:fadeUp .8s .5s ease both;}
+    .hero-desc strong{color:var(--text);font-weight:500;}
+    .phase-strip{display:flex;align-items:center;gap:0;opacity:0;animation:fadeUp .8s .7s ease both;}
+    .phase-step{display:flex;align-items:center;gap:.4rem;font-size:.62rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.4rem .8rem;border:1px solid var(--border);background:rgba(19,21,30,.7);backdrop-filter:blur(8px);}
+    .phase-step:first-child{border-radius:4px 0 0 4px;}
+    .phase-step:last-child{border-radius:0 4px 4px 0;}
+    .phase-step.done{background:rgba(232,147,90,.1);border-color:rgba(232,147,90,.25);color:var(--accent);}
+    .phase-step.current{background:var(--phase);border-color:var(--phase);color:#000;}
+    .phase-step.current .ps-num{color:#000;}
+    .ps-num{font-family:var(--outfit);font-weight:700;font-size:.58rem;}
+    .scroll-hint{position:absolute;bottom:2rem;right:5vw;z-index:3;display:flex;flex-direction:column;align-items:center;gap:.5rem;opacity:0;animation:fadeUp 1s 1s ease both;}
+    .scroll-hint span{font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(236,238,245,.3);}
+    .scroll-line{width:1px;height:48px;background:linear-gradient(180deg,rgba(232,212,90,.6),transparent);animation:scrollPulse 2s ease-in-out infinite;}
+    @keyframes scrollPulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+
+    /* CONTENT */
+    .content-wrap{max-width:960px;margin:0 auto;padding:0 5vw;}
+    .section{padding:4.5rem 0;border-bottom:1px solid var(--border);}
+    .section:last-child{border-bottom:none;padding-bottom:3rem;}
+    .sec-eyebrow{font-size:.62rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--phase);margin-bottom:.7rem;display:flex;align-items:center;gap:.4rem;}
+    .sec-eyebrow::before{content:'';width:14px;height:1px;background:var(--phase);}
+    .sec-title{font-family:var(--outfit);font-size:1.55rem;font-weight:700;letter-spacing:-.02em;color:var(--text);margin-bottom:.8rem;}
+    .sec-body{font-size:.88rem;font-weight:300;color:var(--muted);line-height:1.8;max-width:680px;}
+    .sec-body strong{color:var(--text);font-weight:500;}
+
+    /* KPI STRIP */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:1.8rem;}
+    .stat-cell{background:var(--surface);padding:1.4rem 1rem;text-align:center;transition:background var(--tr);}
+    .stat-cell:hover{background:var(--surface2);}
+    .stat-val{font-family:var(--outfit);font-size:1.8rem;font-weight:800;line-height:1;}
+    .stat-lbl{font-size:.6rem;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:.35rem;}
+    .stat-sub{font-size:.6rem;color:var(--muted);margin-top:.2rem;opacity:.7;}
+
+    /* TREND CHART */
+    .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.6rem;margin-top:1.8rem;}
+    .chart-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.4rem;}
+    .chart-card-title{font-family:var(--outfit);font-size:.9rem;font-weight:700;color:var(--text);}
+    .chart-card-sub{font-size:.72rem;color:var(--muted);margin-top:.18rem;}
+    .live-dot{display:flex;align-items:center;gap:.35rem;font-size:.68rem;color:var(--accent3);white-space:nowrap;}
+    .live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent3);animation:pulse-dot 1.5s ease-in-out infinite;}
+    .chart-wrap{position:relative;height:220px;}
+
+    /* PILLARS */
+    .pillars-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.8rem;}
+    .pillar-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--phase);border-radius:8px;padding:1.25rem;transition:border-color var(--tr);}
+    .pillar-card:hover{border-color:var(--phase);}
+    .pillar-tag{font-family:var(--mono);font-size:.66rem;font-weight:500;color:var(--phase);margin-bottom:.5rem;}
+    .pillar-title{font-family:var(--outfit);font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:.35rem;}
+    .pillar-desc{font-size:.76rem;color:var(--muted);line-height:1.65;}
+    .pillar-badge{display:inline-block;font-size:.58rem;font-weight:600;padding:.1rem .38rem;border-radius:999px;margin-top:.5rem;}
+    .pb-auto{background:rgba(125,232,160,.1);color:var(--accent3);}
+    .pb-manual{background:rgba(232,212,90,.1);color:var(--phase);}
+    .pb-alert{background:rgba(232,90,106,.1);color:var(--danger);}
+
+    /* RETRAINING STEPS */
+    .retrain-steps{display:flex;flex-direction:column;gap:.9rem;margin-top:1.4rem;}
+    .rs-step{display:flex;gap:1.1rem;align-items:flex-start;}
+    .rs-num{font-family:var(--outfit);font-size:.68rem;font-weight:800;min-width:28px;height:28px;border-radius:50%;background:rgba(232,212,90,.12);color:var(--phase);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem;}
+    .rs-label{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:.15rem;}
+    .rs-detail{font-size:.78rem;color:var(--muted);line-height:1.6;}
+
+    /* THRESHOLDS TABLE — all dark */
+    .thresh-wrap{margin-top:1.8rem;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+    .thresh-table{width:100%;border-collapse:collapse;font-size:.82rem;background:var(--surface);}
+    .thresh-table th{padding:.6rem 1rem;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);text-align:left;background:var(--surface2);}
+    .thresh-table td{padding:.65rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);background:var(--surface);}
+    .thresh-table tr:last-child td{border-bottom:none;}
+    .thresh-table tr:nth-child(even) td{background:var(--surface2);}
+    .sev{display:inline-block;font-size:.63rem;font-weight:700;padding:.12rem .42rem;border-radius:999px;}
+    .sev-low{background:rgba(125,232,160,.12);color:var(--accent3);}
+    .sev-med{background:rgba(232,212,90,.12);color:var(--phase);}
+    .sev-high{background:rgba(232,90,106,.12);color:var(--danger);}
+
+    /* FUTURE RISKS */
+    .future-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.8rem;}
+    .future-item{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--phase);border-radius:8px;padding:1.1rem 1.25rem;}
+    .future-tag{font-family:var(--mono);font-size:.64rem;color:var(--phase);margin-bottom:.3rem;}
+    .future-title{font-size:.8rem;font-weight:600;color:var(--text);margin-bottom:.3rem;}
+    .future-desc{font-size:.75rem;color:var(--muted);line-height:1.6;}
+
+    /* FOOTER */
+    .pw-footer{border-top:1px solid var(--border);padding:2rem 5vw;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-top:2rem;}
+    .footer-brand{font-family:var(--outfit);font-size:.9rem;font-weight:800;color:var(--text);}
+    .footer-sub{font-size:.67rem;font-weight:300;color:var(--muted);}
+    .footer-members{display:flex;flex-direction:column;align-items:flex-end;gap:.18rem;}
+    .footer-member{font-size:.7rem;font-weight:300;color:var(--muted);}
+    .footer-univ{font-family:var(--outfit);font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-top:.1rem;}
+
+    .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+
+    @media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr);}.pillars-grid{grid-template-columns:1fr 1fr;}.future-grid{grid-template-columns:1fr;}}
+    @media(max-width:600px){.pw-nav-links{display:none;}.pw-nav-cta{display:none;}.pw-hamburger{display:flex;}.phase-strip{flex-wrap:wrap;}.scroll-hint{display:none;}.pillars-grid{grid-template-columns:1fr;}.pw-footer{flex-direction:column;align-items:flex-start;}.footer-members{align-items:flex-start;}}
+  </style>
+</head>
+<body>
+
+<nav class="pw-nav" id="navbar">
+  <a href="{{ url_for('home') }}" class="pw-nav-logo"><span class="logo-dot"></span>PetWatch</a>
+  <ul class="pw-nav-links">
+    <li><a href="{{ url_for('businessUnderstanding') }}">Business <span class="phase-badge">P1</span></a></li>
+    <li><a href="{{ url_for('dataEngineering') }}">Data Eng. <span class="phase-badge">P2</span></a></li>
+    <li><a href="{{ url_for('modelEngineering') }}">Models <span class="phase-badge">P3</span></a></li>
+    <li><a href="{{ url_for('modelEvaluation') }}">Evaluation <span class="phase-badge">P4</span></a></li>
+    <li><a href="{{ url_for('deployment') }}">Deployment <span class="phase-badge">P5</span></a></li>
+    <li><a href="{{ url_for('monitoring') }}" class="active">Monitoring <span class="phase-badge">P6</span></a></li>
+  </ul>
+  <a href="{{ url_for('modelEngineering') }}" class="pw-nav-cta">Run Model</a>
+  <div class="pw-hamburger" onclick="document.getElementById('mn').classList.toggle('open')"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-nav-drawer" id="mn">
+  <a href="{{ url_for('businessUnderstanding') }}">Phase 1 — Business Understanding</a>
+  <a href="{{ url_for('dataEngineering') }}">Phase 2 — Data Engineering</a>
+  <a href="{{ url_for('modelEngineering') }}">Phase 3 — Model Engineering</a>
+  <a href="{{ url_for('modelEvaluation') }}">Phase 4 — Model Evaluation</a>
+  <a href="{{ url_for('deployment') }}">Phase 5 — Deployment</a>
+  <a href="{{ url_for('monitoring') }}">Phase 6 — Monitoring</a>
+</div>
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="hero-bg">
+    <img src="https://images.unsplash.com/photo-1525253013412-55c1a69a5738?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"/>
+  </div>
+  <div class="hero-content">
+    <a href="{{ url_for('home') }}" class="back-link">&#8592; Home</a>
+    <p class="hero-eyebrow">CRISP-ML &middot; Phase 06 of 06</p>
+    <h1 class="hero-title">Monitoring &amp;<br><span class="aw">Maintenance</span></h1>
+    <p class="hero-desc">
+      Continuous accuracy tracking, <strong>data drift detection</strong>, retraining protocols, alert thresholds, and long-term maintenance strategy to keep PetWatch reliable over time.
+    </p>
+    <div class="phase-strip">
+      <div class="phase-step done"><span class="ps-num">P1</span> Business</div>
+      <div class="phase-step done"><span class="ps-num">P2</span> Data Eng.</div>
+      <div class="phase-step done"><span class="ps-num">P3</span> Models</div>
+      <div class="phase-step done"><span class="ps-num">P4</span> Evaluation</div>
+      <div class="phase-step done"><span class="ps-num">P5</span> Deployment</div>
+      <div class="phase-step current"><span class="ps-num">P6</span> Monitoring</div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+
+  <!-- KPIs -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 01 &mdash; Status</p>
+    <h2 class="sec-title">Current Model Status</h2>
+    <p class="sec-body">Key performance indicators for the deployed Random Forest model. The warning threshold at <strong>92%</strong> and critical threshold at <strong>90%</strong> trigger automated alerts and retraining procedures.</p>
+    <div class="stats-row">
+      <div class="stat-cell"><div class="stat-val" style="color:var(--accent3)">94.3%</div><div class="stat-lbl">CV Accuracy</div><div class="stat-sub">Stable baseline</div></div>
+      <div class="stat-cell"><div class="stat-val" style="color:var(--phase)">±0.7%</div><div class="stat-lbl">Std Deviation</div><div class="stat-sub">5-fold CV spread</div></div>
+      <div class="stat-cell"><div class="stat-val" style="color:var(--accent2)">90%</div><div class="stat-lbl">Drift Threshold</div><div class="stat-sub">Retrain if below</div></div>
+      <div class="stat-cell"><div class="stat-val" style="color:var(--accent)">Q1 2026</div><div class="stat-lbl">Next Review</div><div class="stat-sub">Scheduled</div></div>
+    </div>
+  </section>
+
+  <!-- ACCURACY TREND -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 02 &mdash; Accuracy Trend</p>
+    <h2 class="sec-title">Simulated Performance Over Time</h2>
+    <p class="sec-body">Projected accuracy over 12 months post-deployment, showing expected gradual drift, warning and critical thresholds, and a retraining event in month 6 that restores performance.</p>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">Monthly CV Accuracy — Random Forest</div>
+          <div class="chart-card-sub">Simulated projection &middot; Retraining event marked in orange (Month 6)</div>
+        </div>
+        <div class="live-dot">Simulated monitoring</div>
+      </div>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- MONITORING PILLARS -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 03 &mdash; Strategy</p>
+    <h2 class="sec-title">Monitoring Framework</h2>
+    <p class="sec-body">Six monitoring pillars covering performance, drift, operations, concept shift, audit logging, and stakeholder reporting — each with a defined ownership and cadence.</p>
+    <div class="pillars-grid">
+      <div class="pillar-card"><div class="pillar-tag">[P1]</div><div class="pillar-title">Performance Monitoring</div><div class="pillar-desc">Track accuracy, F1-score, and per-class precision on incoming batches monthly against a held-out validation set.</div><span class="pillar-badge pb-auto">Automated</span></div>
+      <div class="pillar-card"><div class="pillar-tag">[P2]</div><div class="pillar-title">Data Drift Detection</div><div class="pillar-desc">KS-tests compare incoming feature distributions against the training baseline. Alert when shift exceeds 15% on key variables.</div><span class="pillar-badge pb-alert">Alert triggered</span></div>
+      <div class="pillar-card"><div class="pillar-tag">[P3]</div><div class="pillar-title">Operational Health</div><div class="pillar-desc">Monitor API response times, request volume, error rates on /api/predict, and Render uptime. Alert above 2% error rate.</div><span class="pillar-badge pb-manual">Manual review</span></div>
+      <div class="pillar-card"><div class="pillar-tag">[P4]</div><div class="pillar-title">Concept Drift Tracking</div><div class="pillar-desc">Validate predictions against new ground-truth labels from IDPYBA institutional reports when available.</div><span class="pillar-badge pb-manual">Manual review</span></div>
+      <div class="pillar-card"><div class="pillar-tag">[P5]</div><div class="pillar-title">Audit Logging</div><div class="pillar-desc">Every prediction request is logged with inputs, predicted label, probabilities, and timestamp for retrospective analysis.</div><span class="pillar-badge pb-auto">Automated</span></div>
+      <div class="pillar-card"><div class="pillar-tag">[P6]</div><div class="pillar-title">Stakeholder Reporting</div><div class="pillar-desc">Quarterly summary reports covering accuracy trends, geographic risk evolution, and model update recommendations.</div><span class="pillar-badge pb-manual">Quarterly</span></div>
+    </div>
+  </section>
+
+  <!-- RETRAINING PROTOCOL -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 04 &mdash; Retraining</p>
+    <h2 class="sec-title">Retraining Protocol</h2>
+    <p class="sec-body">A five-step procedure is triggered when CV accuracy drops below 90%, when KS-test p-value &lt; 0.05 for two or more key variables, or on a fixed 6-month schedule.</p>
+    <div class="retrain-steps">
+      <div class="rs-step"><div class="rs-num">01</div><div><div class="rs-label">Trigger Detection</div><div class="rs-detail">Retraining fires when CV accuracy &lt; 90%, or when feature distribution KS-test p-value &lt; 0.05 for 2+ key variables, or on the 6-month fixed schedule.</div></div></div>
+      <div class="rs-step"><div class="rs-num">02</div><div><div class="rs-label">Data Collection &amp; Augmentation</div><div class="rs-detail">Collect new observations from IDPYBA or municipal sources. Augment the synthetic dataset with verified records, maintaining 6,500+ total records.</div></div></div>
+      <div class="rs-step"><div class="rs-num">03</div><div><div class="rs-label">Model Retraining</div><div class="rs-detail">Retrain RandomForestClassifier (n_estimators=200, max_depth=8). Run 5-fold CV. Only promote if new CV accuracy &ge; 90% and exceeds the current model's score.</div></div></div>
+      <div class="rs-step"><div class="rs-num">04</div><div><div class="rs-label">Shadow Mode Validation</div><div class="rs-detail">Run new model in parallel for 2 weeks. Compare predictions against the live model on real traffic. Promote to production only if agreement rate &ge; 85% on stable cases.</div></div></div>
+      <div class="rs-step"><div class="rs-num">05</div><div><div class="rs-label">Deploy &amp; Document</div><div class="rs-detail">Push updated code to GitHub. Render auto-deploys. Update the model card with new metrics, training date, dataset version, and architecture changes.</div></div></div>
+    </div>
+  </section>
+
+  <!-- ALERT THRESHOLDS -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 05 &mdash; Thresholds</p>
+    <h2 class="sec-title">Degradation Thresholds</h2>
+    <p class="sec-body">Defined alert levels from informational to critical, each mapped to a specific remediation action.</p>
+    <div class="thresh-wrap">
+      <table class="thresh-table">
+        <thead>
+          <tr><th>Metric</th><th>Baseline</th><th>Warning</th><th>Critical</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td style="color:var(--text);">CV Accuracy</td><td>94.3%</td><td>&lt; 92%</td><td>&lt; 90%</td><td><span class="sev sev-high">Immediate retrain</span></td></tr>
+          <tr><td style="color:var(--text);">Macro F1-Score</td><td>96.8%</td><td>&lt; 90%</td><td>&lt; 85%</td><td><span class="sev sev-high">Immediate retrain</span></td></tr>
+          <tr><td style="color:var(--text);">HIGH class Recall</td><td>92%</td><td>&lt; 85%</td><td>&lt; 78%</td><td><span class="sev sev-med">Investigate bias</span></td></tr>
+          <tr><td style="color:var(--text);">API Error Rate</td><td>&lt; 0.5%</td><td>&gt; 2%</td><td>&gt; 5%</td><td><span class="sev sev-high">Ops alert</span></td></tr>
+          <tr><td style="color:var(--text);">Feature KS-test</td><td>p &gt; 0.5</td><td>p &lt; 0.1</td><td>p &lt; 0.05</td><td><span class="sev sev-med">Drift review</span></td></tr>
+          <tr><td style="color:var(--text);">Monthly volume</td><td>Baseline</td><td>&lt; 50% drop</td><td>&lt; 20% drop</td><td><span class="sev sev-low">Usage review</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- FUTURE RISKS -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 06 &mdash; Long-Term Risks</p>
+    <h2 class="sec-title">Future Risks &amp; Mitigation</h2>
+    <p class="sec-body">Even a well-monitored system faces long-term challenges as the world it models continues to change.</p>
+    <div class="future-grid">
+      <div class="future-item"><div class="future-tag">[POLICY]</div><div class="future-title">Regulatory Changes</div><div class="future-desc">New city regulations on microchipping or sterilization subsidies could shift feature distributions rapidly, invalidating trained correlations.</div></div>
+      <div class="future-item"><div class="future-tag">[DATA]</div><div class="future-title">Data Availability</div><div class="future-desc">Dependency on IDPYBA data means format changes or access restrictions could interrupt the data collection and retraining pipeline.</div></div>
+      <div class="future-item"><div class="future-tag">[DRIFT]</div><div class="future-title">Model Staleness</div><div class="future-desc">Without real-world labels, the model continues evaluating against synthetic ground truth. True production accuracy remains uncertain until validated against real outcomes.</div></div>
+      <div class="future-item"><div class="future-tag">[GEO]</div><div class="future-title">Coverage Gaps</div><div class="future-desc">Sumapaz and rural localities have very few records. Predictions for underrepresented zones are less reliable and could skew resource allocation.</div></div>
+      <div class="future-item"><div class="future-tag">[INFRA]</div><div class="future-title">Infrastructure Limits</div><div class="future-desc">Render's free tier cold-starts after inactivity (30–60 seconds). High-traffic periods may require migrating to a paid tier or a more robust host.</div></div>
+      <div class="future-item"><div class="future-tag">[PRIVACY]</div><div class="future-title">Data Privacy</div><div class="future-desc">If extended to citizen-level data, Colombian Law 1581 (GDPR-equivalent) protections must be implemented before any production expansion.</div></div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="pw-footer">
+  <div><p class="footer-brand">PetWatch</p><p class="footer-sub">Machine Learning &middot; CRISP-ML &middot; Phase 06 — Monitoring &amp; Maintenance</p></div>
+  <div class="footer-members">
+    <span class="footer-member">Elkin Yamith Almonacid López</span>
+    <span class="footer-member">Brayan David Cuitiva Umbarila</span>
+    <span class="footer-member">Brayan Yair Mendez Rodriguez</span>
+    <span class="footer-univ">Universidad de Cundinamarca</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+window.addEventListener('scroll',()=>{
+  document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>20);
+});
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});
+},{threshold:.06});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// Accuracy trend chart
+const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const accuracy=[94.3,93.8,93.2,92.6,91.9,90.4,94.2,93.7,93.1,92.5,91.8,91.2];
+const isRetrain=accuracy.map((v,i)=>i===5);
+
+new Chart(document.getElementById('trendChart'),{
+  type:'line',
+  data:{
+    labels:months,
+    datasets:[
+      {
+        label:'CV Accuracy (%)',
+        data:accuracy,
+        borderColor:'#5ab4e8',
+        backgroundColor:'rgba(90,180,232,0.07)',
+        pointBackgroundColor:accuracy.map((_,i)=>isRetrain[i]?'#e8935a':'#5ab4e8'),
+        pointBorderColor:accuracy.map((_,i)=>isRetrain[i]?'#e8935a':'#5ab4e8'),
+        pointRadius:accuracy.map((_,i)=>isRetrain[i]?7:4),
+        fill:true,tension:.35,borderWidth:2
+      },
+      {label:'Warning (92%)',data:Array(12).fill(92),borderColor:'rgba(232,212,90,.35)',borderDash:[5,5],borderWidth:1,pointRadius:0,fill:false},
+      {label:'Critical (90%)',data:Array(12).fill(90),borderColor:'rgba(232,90,106,.35)',borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{labels:{color:'rgba(236,238,245,.55)',font:{size:11},boxWidth:12}},
+      tooltip:{callbacks:{afterLabel:(ctx)=>isRetrain[ctx.dataIndex]?'  Retraining event':''}}
+    },
+    scales:{
+      x:{grid:{color:'rgba(30,34,53,.7)'},ticks:{color:'rgba(236,238,245,.45)',font:{size:10}}},
+      y:{min:88,max:96,grid:{color:'rgba(30,34,53,.7)'},ticks:{color:'rgba(236,238,245,.45)',font:{size:10},callback:v=>v+'%'}}
+    }
+  }
+});
+</script>
+</body>
+</html>
