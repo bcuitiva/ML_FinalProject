@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PetWatch — Intelligent Animal Abandonment Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <style>
+    :root {
+      --bg:      #0a0b0f;
+      --bg2:     #0f1118;
+      --surface: #13151e;
+      --border:  #1e2235;
+      --text:    #eceef5;
+      --muted:   #5a5f7a;
+      --accent:  #e8935a;
+      --accent2: #5ab4e8;
+      --accent3: #7de8a0;
+      --danger:  #e85a6a;
+      --syne: 'Outfit', sans-serif;
+      --dm:      'DM Sans', sans-serif;
+      --tr:      0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:var(--dm);overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:0.4;}
+
+    /* ── NAVBAR ── */
+    .pw-nav{position:fixed;top:0;left:0;right:0;z-index:900;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,11,15,0.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);transition:background var(--tr);}
+    .pw-nav-logo{font-family:var(--syne);font-size:1.2rem;font-weight:800;letter-spacing:-0.02em;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:0.5rem;}
+    .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse-dot 2s ease-in-out infinite;}
+    @keyframes pulse-dot{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.4);opacity:0.7;}}
+    .pw-nav-links{display:flex;align-items:center;gap:0.15rem;list-style:none;}
+    .pw-nav-links a{font-family:var(--dm);font-size:0.72rem;font-weight:400;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:0.4rem 0.65rem;border-radius:4px;transition:color var(--tr),background var(--tr);white-space:nowrap;}
+    .pw-nav-links a:hover,.pw-nav-links a.active{color:var(--text);background:rgba(255,255,255,0.05);}
+    .phase-badge{font-size:0.58rem;font-weight:600;background:var(--accent);color:#000;padding:0.1rem 0.3rem;border-radius:3px;margin-left:0.25rem;vertical-align:middle;}
+    .pw-nav-cta{font-family:var(--syne);font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#000;background:var(--accent);border:none;padding:0.45rem 1rem;border-radius:4px;text-decoration:none;transition:opacity var(--tr),transform var(--tr);}
+    .pw-nav-cta:hover{opacity:0.85;transform:translateY(-1px);color:#000;}
+    .pw-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;}
+    .pw-hamburger span{width:22px;height:2px;background:var(--text);border-radius:2px;transition:all 0.3s;}
+
+    /* ── HERO ── */
+    .hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;position:relative;overflow:hidden;}
+    .hero-content{display:flex;flex-direction:column;justify-content:center;padding:8rem 4rem 6rem 5vw;position:relative;z-index:2;}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.68rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:1.8rem;opacity:0;animation:fadeUp 0.8s 0.2s ease both;}
+    .hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--accent);display:inline-block;}
+
+    .hero-title{
+    font-family:var(--syne);
+    font-size:clamp(2.8rem,5.5vw,5.2rem);
+    font-weight:700;
+    letter-spacing:-0.02em;
+    line-height:1.15;
+      color:var(--text);
+      margin-bottom:1.8rem;
+      opacity:0;
+      animation:fadeUp 0.8s 0.4s ease both;
+    }
+    .hero-title .aw{color:var(--accent);position:relative;}
+    .hero-title .aw::after{content:'';position:absolute;bottom:4px;left:0;right:0;height:3px;background:var(--accent);opacity:0.3;border-radius:2px;}
+
+    .hero-desc{font-size:1rem;font-weight:300;color:var(--muted);line-height:1.75;max-width:480px;margin-bottom:2.5rem;opacity:0;animation:fadeUp 0.8s 0.6s ease both;}
+    .hero-desc strong{color:var(--text);font-weight:500;}
+    .hero-actions{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;opacity:0;animation:fadeUp 0.8s 0.8s ease both;}
+
+    .btn-primary{font-family:var(--syne);font-size:0.8rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#000;background:var(--accent);border:none;padding:0.85rem 2rem;border-radius:4px;text-decoration:none;transition:opacity var(--tr),transform var(--tr);cursor:pointer;display:inline-block;}
+    .btn-primary:hover{opacity:0.88;transform:translateY(-2px);color:#000;}
+    .btn-ghost{font-family:var(--dm);font-size:0.8rem;font-weight:400;letter-spacing:0.04em;color:var(--muted);background:transparent;border:1px solid var(--border);padding:0.85rem 1.5rem;border-radius:4px;text-decoration:none;transition:color var(--tr),border-color var(--tr);display:inline-block;}
+    .btn-ghost:hover{color:var(--text);border-color:var(--muted);}
+
+    .hero-stats{display:flex;gap:2rem;margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border);opacity:0;animation:fadeUp 0.8s 1s ease both;}
+    .stat-item{display:flex;flex-direction:column;gap:0.2rem;}
+    .stat-num{font-family:var(--syne);font-size:1.6rem;font-weight:800;letter-spacing:-0.04em;color:var(--text);}
+    .stat-num .sa{color:var(--accent);}
+    .stat-label{font-size:0.65rem;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+
+    .hero-visual{position:relative;overflow:hidden;}
+    .hero-img-wrap{position:absolute;inset:0;}
+    .hero-img-wrap img{width:100%;height:100%;object-fit:cover;object-position:center 30%;filter:saturate(0.65) brightness(0.5);transition:filter 1s ease;}
+    .hero-img-wrap:hover img{filter:saturate(0.85) brightness(0.62);}
+    .hero-img-wrap::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(10,11,15,0.55) 40%,transparent 70%);z-index:1;}
+    .hero-img-wrap::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,transparent 40%);z-index:1;}
+
+    .hero-card{position:absolute;bottom:3rem;right:2.5rem;z-index:3;background:rgba(19,21,30,0.92);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:8px;padding:1.2rem 1.4rem;min-width:220px;opacity:0;animation:fadeUp 0.8s 1.2s ease both;}
+    .hero-card-label{font-size:0.6rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem;}
+    .risk-bar-wrap{margin-bottom:0.55rem;}
+    .risk-label{display:flex;justify-content:space-between;font-size:0.72rem;font-weight:400;color:var(--text);margin-bottom:0.3rem;}
+    .risk-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+    .risk-fill{height:100%;border-radius:2px;animation:growBar 1.5s 1.4s ease both;transform-origin:left;}
+    @keyframes growBar{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+    .risk-fill.high{background:var(--danger);width:85%;}
+    .risk-fill.mid{background:var(--accent);width:60%;}
+    .risk-fill.low{background:var(--accent3);width:28%;}
+
+    /* ── PHASES SECTION ── */
+    .phases-section{padding:7rem 5vw;position:relative;}
+
+    .section-eyebrow{font-size:0.66rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent2);margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;}
+    .section-eyebrow::before{content:'';width:20px;height:1px;background:var(--accent2);}
+
+    .section-title{
+      font-family:var(--syne);
+      font-size:clamp(2rem,4vw,3.2rem);
+      font-weight:800;
+      letter-spacing:-0.03em;
+      line-height:1.2;
+      color:var(--text);
+      margin-bottom:1rem;
+    }
+
+    .section-desc{font-size:0.88rem;font-weight:300;color:var(--muted);max-width:520px;line-height:1.75;margin-bottom:3.5rem;}
+
+    .phases-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+
+    .phase-card{background:var(--surface);padding:2.2rem 2rem;text-decoration:none;color:var(--text);position:relative;overflow:hidden;transition:background var(--tr);display:flex;flex-direction:column;gap:0.85rem;}
+    .phase-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--phase-color,var(--accent));transform:scaleX(0);transition:transform 0.4s ease;transform-origin:left;}
+    .phase-card:hover{background:rgba(255,255,255,0.03);}
+    .phase-card:hover::before{transform:scaleX(1);}
+
+    .phase-num{font-family:var(--syne);font-size:0.6rem;font-weight:700;letter-spacing:0.15em;color:var(--phase-color,var(--accent));opacity:0.7;}
+
+    .phase-title{
+      font-family:var(--syne);
+      font-size:1.05rem;
+      font-weight:700;
+      letter-spacing:-0.01em;
+      line-height:1.3;
+      color:var(--text);
+    }
+
+    .phase-desc{font-size:0.78rem;font-weight:300;color:var(--muted);line-height:1.65;flex:1;}
+
+    .phase-arrow{font-size:0.8rem;color:var(--muted);transition:color var(--tr),transform var(--tr);}
+    .phase-card:hover .phase-arrow{color:var(--phase-color,var(--accent));transform:translateX(4px);}
+
+    /* ── ABOUT SECTION ── */
+    .about-section{padding:7rem 5vw;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;border-top:1px solid var(--border);}
+    .about-visual{position:relative;}
+    .about-img-wrap{border-radius:8px;overflow:hidden;position:relative;}
+    .about-img-wrap img{width:100%;height:420px;object-fit:cover;filter:saturate(0.55) brightness(0.45);transition:filter var(--tr);}
+    .about-img-wrap:hover img{filter:saturate(0.75) brightness(0.6);}
+    .about-img-wrap::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,transparent 55%);}
+    .about-badge{position:absolute;top:-1rem;right:-1rem;background:var(--accent);border-radius:8px;padding:1rem 1.2rem;z-index:2;}
+    .about-badge-num{font-family:var(--syne);font-size:1.8rem;font-weight:800;color:#000;line-height:1;}
+    .about-badge-label{font-size:0.62rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(0,0,0,0.6);}
+    .about-content{display:flex;flex-direction:column;gap:1.2rem;}
+    .about-content p{font-size:0.88rem;font-weight:300;color:var(--muted);line-height:1.8;}
+    .about-content p strong{color:var(--text);font-weight:500;}
+    .hypothesis-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.4rem;}
+    .hyp-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem 0.75rem 1.4rem;font-size:0.74rem;font-weight:300;color:var(--muted);line-height:1.5;position:relative;}
+    .hyp-item::before{content:'→';position:absolute;left:0.55rem;color:var(--accent);font-size:0.68rem;}
+
+    /* ── FOOTER ── */
+    .pw-footer{border-top:1px solid var(--border);padding:2.5rem 5vw;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+    .footer-left{display:flex;flex-direction:column;gap:0.25rem;}
+    .footer-brand{font-family:var(--syne);font-size:0.95rem;font-weight:800;color:var(--text);}
+    .footer-sub{font-size:0.7rem;font-weight:300;color:var(--muted);letter-spacing:0.04em;}
+    .footer-members{display:flex;flex-direction:column;align-items:flex-end;gap:0.2rem;}
+    .footer-member{font-size:0.73rem;font-weight:300;color:var(--muted);}
+    .footer-univ{font-family:var(--syne);font-size:0.63rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-top:0.15rem;}
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+    .reveal{opacity:0;transform:translateY(20px);transition:opacity 0.7s ease,transform 0.7s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+
+    /* ── MOBILE NAV DRAWER ── */
+    .mobile-nav-drawer{display:none;position:fixed;top:64px;left:0;right:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:1.5rem 2rem;z-index:800;flex-direction:column;gap:0.5rem;}
+    .mobile-nav-drawer.open{display:flex;}
+    .mobile-nav-drawer a{font-size:0.82rem;color:var(--muted);text-decoration:none;padding:0.5rem 0;border-bottom:1px solid var(--border);}
+    .mobile-nav-drawer a:hover{color:var(--text);}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:1024px){
+      .phases-grid{grid-template-columns:repeat(2,1fr);}
+      .pw-nav-links a{font-size:0.67rem;padding:0.4rem 0.5rem;}
+    }
+    @media(max-width:768px){
+      .hero{grid-template-columns:1fr;}
+      .hero-visual{height:50vh;order:-1;}
+      .hero-content{padding:6rem 1.5rem 3rem;}
+      .hero-img-wrap::before{background:linear-gradient(0deg,var(--bg) 0%,rgba(10,11,15,0.4) 60%,transparent 100%);}
+      .hero-stats{gap:1.2rem;flex-wrap:wrap;}
+      .phases-grid{grid-template-columns:1fr;}
+      .about-section{grid-template-columns:1fr;gap:2rem;}
+      .about-visual{order:-1;}
+      .pw-nav-links{display:none;}
+      .pw-nav-cta{display:none;}
+      .pw-hamburger{display:flex;}
+      .pw-footer{flex-direction:column;align-items:flex-start;}
+      .footer-members{align-items:flex-start;}
+      .hypothesis-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="pw-nav" id="navbar">
+  <a href="{{ url_for('home') }}" class="pw-nav-logo">
+    <span class="logo-dot"></span>PetWatch
+  </a>
+  <ul class="pw-nav-links">
+    <li><a href="{{ url_for('businessUnderstanding') }}">Business <span class="phase-badge">P1</span></a></li>
+    <li><a href="{{ url_for('dataEngineering') }}">Data Eng. <span class="phase-badge">P2</span></a></li>
+    <li><a href="{{ url_for('modelEngineering') }}">Models <span class="phase-badge">P3</span></a></li>
+    <li><a href="{{ url_for('modelEvaluation') }}">Evaluation <span class="phase-badge">P4</span></a></li>
+    <li><a href="{{ url_for('deployment') }}">Deployment <span class="phase-badge">P5</span></a></li>
+    <li><a href="{{ url_for('monitoring') }}">Monitoring <span class="phase-badge">P6</span></a></li>
+  </ul>
+  <a href="{{ url_for('modelEngineering') }}" class="pw-nav-cta">Run Model</a>
+  <div class="pw-hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- Mobile drawer -->
+<div class="mobile-nav-drawer" id="mobileNav">
+  <a href="{{ url_for('businessUnderstanding') }}">Phase 1 — Business Understanding</a>
+  <a href="{{ url_for('dataEngineering') }}">Phase 2 — Data Engineering</a>
+  <a href="{{ url_for('modelEngineering') }}">Phase 3 — Model Engineering</a>
+  <a href="{{ url_for('modelEvaluation') }}">Phase 4 — Model Evaluation</a>
+  <a href="{{ url_for('deployment') }}">Phase 5 — Deployment</a>
+  <a href="{{ url_for('monitoring') }}">Phase 6 — Monitoring</a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <span class="hero-eyebrow">CRISP-ML &middot; Colombia &middot; 2025</span>
+    <h1 class="hero-title">
+      Detecting<br>
+      <span class="aw">Animal</span><br>
+      Abandonment<br>
+      Patterns
+    </h1>
+    <p class="hero-desc">
+      <strong>PetWatch</strong> uses machine learning and open civic data to detect
+      risk patterns of domestic animal abandonment across Colombian cities &mdash;
+      empowering animal protection authorities to act before it's too late.
+    </p>
+    <div class="hero-actions">
+      <a href="{{ url_for('businessUnderstanding') }}" class="btn-primary">Explore the Project</a>
+      <a href="{{ url_for('dataEngineering') }}" class="btn-ghost">View Data</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-num">17<span class="sa">,742</span></span>
+        <span class="stat-label">Records</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">5<span class="sa">+</span></span>
+        <span class="stat-label">Datasets</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">3</span>
+        <span class="stat-label">ML Models</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">2</span>
+        <span class="stat-label">Cities</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="hero-img-wrap">
+      <img
+        src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1200&q=80&auto=format&fit=crop"
+        alt="Dog looking into camera"
+        loading="eager"
+      />
+    </div>
+    <div class="hero-card">
+      <p class="hero-card-label">Risk Score Preview</p>
+      <div class="risk-bar-wrap">
+        <div class="risk-label"><span>Kennedy</span><span style="color:var(--danger)">HIGH</span></div>
+        <div class="risk-bar"><div class="risk-fill high"></div></div>
+      </div>
+      <div class="risk-bar-wrap">
+        <div class="risk-label"><span>Bosa</span><span style="color:var(--accent)">MEDIUM</span></div>
+        <div class="risk-bar"><div class="risk-fill mid"></div></div>
+      </div>
+      <div class="risk-bar-wrap">
+        <div class="risk-label"><span>Chapinero</span><span style="color:var(--accent3)">LOW</span></div>
+        <div class="risk-bar"><div class="risk-fill low"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CRISP-ML PHASES -->
+<section class="phases-section">
+  <p class="section-eyebrow reveal">CRISP-ML Methodology</p>
+  <h2 class="section-title reveal">Six phases.<br>One complete system.</h2>
+  <p class="section-desc reveal">
+    Following the CRISP-ML framework, each phase is documented, implemented,
+    and accessible — from problem definition to continuous monitoring.
+  </p>
+
+  <div class="phases-grid reveal">
+
+    <a href="{{ url_for('businessUnderstanding') }}" class="phase-card" style="--phase-color:#e8935a;">
+      <span class="phase-num">PHASE 01</span>
+      <h3 class="phase-title">Business Understanding</h3>
+      <p class="phase-desc">Problem definition, key questions, risk analysis, and success criteria for the abandonment detection system.</p>
+      <span class="phase-arrow">&#8594;</span>
+    </a>
+
+    <a href="{{ url_for('dataEngineering') }}" class="phase-card" style="--phase-color:#5ab4e8;">
+      <span class="phase-num">PHASE 02</span>
+      <h3 class="phase-title">Data Engineering</h3>
+      <p class="phase-desc">Collection, cleaning, and integration of 5 open datasets from Bogotá and Cali into a unified 17,742-record dataset.</p>
+      <span class="phase-arrow">&#8594;</span>
+    </a>
+
+    <a href="{{ url_for('modelEngineering') }}" class="phase-card" style="--phase-color:#7de8a0;">
+      <span class="phase-num">PHASE 03</span>
+      <h3 class="phase-title">Model Engineering</h3>
+      <p class="phase-desc">Three algorithms — Random Forest, Logistic Regression, and K-Means — trained to detect and predict abandonment risk zones.</p>
+      <span class="phase-arrow">&#8594;</span>
+    </a>
+
+    <a href="{{ url_for('modelEvaluation') }}" class="phase-card" style="--phase-color:#b88de8;">
+      <span class="phase-num">PHASE 04</span>
+      <h3 class="phase-title">Model Evaluation</h3>
+      <p class="phase-desc">Performance metrics, cross-validation, and comparison across models — Accuracy, F1, AUC-ROC and more.</p>
+      <span class="phase-arrow">&#8594;</span>
+    </a>
+
+    <a href="{{ url_for('deployment') }}" class="phase-card" style="--phase-color:#e85a8a;">
+      <span class="phase-num">PHASE 05</span>
+      <h3 class="phase-title">Deployment</h3>
+      <p class="phase-desc">Integration into this Flask application — production architecture, API design, and user-facing prediction interface.</p>
+      <span class="phase-arrow">&#8594;</span>
+    </a>
+
+    <a href="{{ url_for('monitoring') }}" class="phase-card" style="--phase-color:#e8d45a;">
+      <span class="phase-num">PHASE 06</span>
+      <h3 class="phase-title">Monitoring &amp; Maintenance</h3>
+      <p class="phase-desc">Continuous performance tracking, drift detection, retraining protocols, and ongoing risk review.</p>
+      <span class="phase-arrow">&#8594;</span>
+    </a>
+
+  </div>
+</section>
+
+<!-- ABOUT / PROBLEM -->
+<section class="about-section">
+  <div class="about-visual reveal">
+    <div class="about-img-wrap">
+      <img
+        src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&q=80&auto=format&fit=crop"
+        alt="Two dogs running free"
+        loading="lazy"
+      />
+    </div>
+    <div class="about-badge">
+      <div class="about-badge-num">6</div>
+      <div class="about-badge-label">Key limitations<br>identified</div>
+    </div>
+  </div>
+
+  <div class="about-content reveal">
+    <p class="section-eyebrow" style="--accent2:var(--accent);">The Problem</p>
+    <h2 class="section-title" style="font-size:clamp(1.6rem,3vw,2.4rem);">
+      No direct data exists.<br>We build the signal.
+    </h2>
+    <p>
+      Official datasets on confirmed animal abandonment <strong>do not exist</strong> in Colombia.
+      PetWatch addresses this gap by engineering a proxy risk signal from
+      <strong>indirect institutional indicators</strong> — abuse reports, veterinary emergencies,
+      microchip coverage, and adoption rates.
+    </p>
+    <p>
+      The system targets <strong>animal protection entities and local authorities</strong> across
+      Bogotá and Cali, providing a data-driven lens to prioritize intervention zones
+      before abandonment escalates.
+    </p>
+    <div class="hypothesis-grid">
+      <div class="hyp-item">Higher abuse rate correlates with higher abandonment risk</div>
+      <div class="hyp-item">Lower microchip coverage indicates less responsible ownership</div>
+      <div class="hyp-item">More veterinary emergencies reflect greater animal vulnerability</div>
+      <div class="hyp-item">Low institutional presence increases territorial risk</div>
+    </div>
+    <a href="{{ url_for('businessUnderstanding') }}" class="btn-primary" style="align-self:flex-start;margin-top:0.5rem;">
+      Read Full Problem Statement
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="pw-footer">
+  <div class="footer-left">
+    <span class="footer-brand">PetWatch</span>
+    <span class="footer-sub">Intelligent Animal Abandonment Detection System &middot; Colombia</span>
+    <span class="footer-sub">Machine Learning &middot; CRISP-ML &middot; 2025</span>
+  </div>
+  <div class="footer-members">
+    <span class="footer-member">Elkin Yamith Almonacid López</span>
+    <span class="footer-member">Brayan David Cuitiva Umbarila</span>
+    <span class="footer-member">Brayan Yair Mendez Rodriguez</span>
+    <span class="footer-univ">Universidad de Cundinamarca</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  function toggleMenu() {
+    document.getElementById('mobileNav').classList.toggle('open');
+  }
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').style.background =
+      window.scrollY > 40 ? 'rgba(10,11,15,0.97)' : 'rgba(10,11,15,0.85)';
+  });
+</script>
+</body>
+</html>
