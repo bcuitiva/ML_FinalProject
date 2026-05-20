@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PetWatch — Deployment</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <style>
+    :root{
+      --bg:#0a0b0f;--bg2:#0f1118;--surface:#13151e;--surface2:#191c28;
+      --border:#1e2235;--text:#eceef5;--muted:#5a5f7a;
+      --accent:#e8935a;--accent2:#5ab4e8;--accent3:#7de8a0;--danger:#e85a6a;
+      --phase:#e85a8a;
+      --outfit:'Outfit',sans-serif;--dm:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+      --tr:0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:var(--dm);overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:0.4;}
+
+    /* NAV */
+    .pw-nav{position:fixed;top:0;left:0;right:0;z-index:900;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,11,15,0.0);backdrop-filter:blur(0px);border-bottom:1px solid transparent;transition:background .4s,backdrop-filter .4s,border-color .4s;}
+    .pw-nav.scrolled{background:rgba(10,11,15,0.92);backdrop-filter:blur(16px);border-bottom-color:var(--border);}
+    .pw-nav-logo{font-family:var(--outfit);font-size:1.2rem;font-weight:800;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:.5rem;}
+    .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--phase);display:inline-block;animation:pulse-dot 2s ease-in-out infinite;}
+    @keyframes pulse-dot{0%,100%{transform:scale(1);}50%{transform:scale(1.4);opacity:.7;}}
+    .pw-nav-links{display:flex;align-items:center;gap:.1rem;list-style:none;}
+    .pw-nav-links a{font-family:var(--dm);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:rgba(236,238,245,.7);text-decoration:none;padding:.38rem .6rem;border-radius:4px;transition:color var(--tr),background var(--tr);white-space:nowrap;}
+    .pw-nav-links a:hover,.pw-nav-links a.active{color:var(--text);background:rgba(255,255,255,.08);}
+    .phase-badge{font-size:.56rem;font-weight:600;background:var(--phase);color:#000;padding:.1rem .28rem;border-radius:3px;margin-left:.2rem;vertical-align:middle;}
+    .pw-nav-cta{font-family:var(--outfit);font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#000;background:var(--phase);padding:.42rem .9rem;border-radius:4px;text-decoration:none;transition:opacity var(--tr);}
+    .pw-nav-cta:hover{opacity:.85;color:#000;}
+    .pw-hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;}
+    .pw-hamburger span{width:22px;height:2px;background:var(--text);border-radius:2px;}
+    .mobile-nav-drawer{display:none;position:fixed;top:64px;left:0;right:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:1.5rem 2rem;z-index:800;flex-direction:column;gap:.5rem;}
+    .mobile-nav-drawer.open{display:flex;}
+    .mobile-nav-drawer a{font-size:.82rem;color:var(--muted);text-decoration:none;padding:.5rem 0;border-bottom:1px solid var(--border);}
+
+    /* HERO */
+    .page-hero{position:relative;min-height:100vh;display:grid;overflow:hidden;}
+    .hero-bg{position:absolute;inset:0;z-index:0;}
+    .hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center 40%;filter:saturate(.45) brightness(.4);}
+    .hero-bg::before{content:'';position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,rgba(10,11,15,.75) 40%,rgba(10,11,15,.15) 72%,transparent 100%),linear-gradient(90deg,rgba(10,11,15,.5) 0%,transparent 65%);z-index:1;}
+    .hero-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 40%,rgba(232,90,138,.07) 0%,transparent 60%);z-index:2;}
+    .hero-content{position:relative;z-index:3;padding:8rem 5vw 5rem;max-width:960px;width:100%;align-self:end;}
+    .back-link{display:inline-flex;align-items:center;gap:.4rem;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(236,238,245,.5);text-decoration:none;margin-bottom:2.5rem;transition:color var(--tr);}
+    .back-link:hover{color:var(--text);}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:.5rem;font-size:.68rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--phase);margin-bottom:1.5rem;opacity:0;animation:fadeUp .8s .1s ease both;}
+    .hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--phase);}
+    .hero-title{font-family:var(--outfit);font-size:clamp(2.8rem,6vw,5.5rem);font-weight:700;letter-spacing:-.02em;line-height:1.1;color:var(--text);margin-bottom:1.5rem;opacity:0;animation:fadeUp .8s .3s ease both;}
+    .hero-title .aw{color:var(--phase);}
+    .hero-desc{font-size:1rem;font-weight:300;color:rgba(236,238,245,.65);line-height:1.75;max-width:580px;margin-bottom:2.5rem;opacity:0;animation:fadeUp .8s .5s ease both;}
+    .hero-desc strong{color:var(--text);font-weight:500;}
+    .phase-strip{display:flex;align-items:center;gap:0;opacity:0;animation:fadeUp .8s .7s ease both;}
+    .phase-step{display:flex;align-items:center;gap:.4rem;font-size:.62rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.4rem .8rem;border:1px solid var(--border);background:rgba(19,21,30,.7);backdrop-filter:blur(8px);}
+    .phase-step:first-child{border-radius:4px 0 0 4px;}
+    .phase-step:last-child{border-radius:0 4px 4px 0;}
+    .phase-step.done{background:rgba(232,147,90,.1);border-color:rgba(232,147,90,.25);color:var(--accent);}
+    .phase-step.current{background:var(--phase);border-color:var(--phase);color:#000;}
+    .phase-step.current .ps-num{color:#000;}
+    .ps-num{font-family:var(--outfit);font-weight:700;font-size:.58rem;}
+    .scroll-hint{position:absolute;bottom:2rem;right:5vw;z-index:3;display:flex;flex-direction:column;align-items:center;gap:.5rem;opacity:0;animation:fadeUp 1s 1s ease both;}
+    .scroll-hint span{font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(236,238,245,.3);}
+    .scroll-line{width:1px;height:48px;background:linear-gradient(180deg,rgba(232,90,138,.6),transparent);animation:scrollPulse 2s ease-in-out infinite;}
+    @keyframes scrollPulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+
+    /* CONTENT */
+    .content-wrap{max-width:960px;margin:0 auto;padding:0 5vw;}
+    .section{padding:4.5rem 0;border-bottom:1px solid var(--border);}
+    .section:last-child{border-bottom:none;padding-bottom:3rem;}
+    .sec-eyebrow{font-size:.62rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--phase);margin-bottom:.7rem;display:flex;align-items:center;gap:.4rem;}
+    .sec-eyebrow::before{content:'';width:14px;height:1px;background:var(--phase);}
+    .sec-title{font-family:var(--outfit);font-size:1.55rem;font-weight:700;letter-spacing:-.02em;color:var(--text);margin-bottom:.8rem;}
+    .sec-body{font-size:.88rem;font-weight:300;color:var(--muted);line-height:1.8;max-width:680px;}
+    .sec-body strong{color:var(--text);font-weight:500;}
+
+    /* ARCHITECTURE FLOW */
+    .arch-flow{display:flex;align-items:center;justify-content:flex-start;gap:0;margin-top:1.8rem;overflow-x:auto;padding-bottom:.5rem;}
+    .arch-node{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1rem;text-align:center;min-width:100px;flex-shrink:0;transition:border-color var(--tr);}
+    .arch-node:hover{border-color:var(--phase);}
+    .arch-node-tag{font-family:var(--mono);font-size:.68rem;font-weight:500;color:var(--phase);margin-bottom:.3rem;}
+    .arch-node-label{font-family:var(--outfit);font-size:.75rem;font-weight:700;color:var(--text);}
+    .arch-node-sub{font-size:.62rem;color:var(--muted);margin-top:.15rem;}
+    .arch-arrow{display:flex;align-items:center;padding:0 .5rem;color:var(--muted);font-size:.8rem;flex-shrink:0;}
+    .arch-note{font-size:.72rem;color:var(--muted);margin-top:1rem;font-family:var(--mono);}
+
+    /* STACK GRID */
+    .stack-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1.8rem;}
+    .stack-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem;transition:border-color var(--tr),transform var(--tr);}
+    .stack-card:hover{border-color:var(--phase);transform:translateY(-2px);}
+    .stack-tag{font-family:var(--mono);font-size:.68rem;font-weight:500;color:var(--phase);margin-bottom:.4rem;}
+    .stack-name{font-family:var(--outfit);font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:.25rem;}
+    .stack-role{font-size:.72rem;color:var(--muted);line-height:1.5;}
+    .stack-badge{display:inline-block;font-size:.56rem;font-weight:600;padding:.1rem .38rem;border-radius:999px;margin-top:.4rem;background:rgba(90,180,232,.1);color:var(--accent2);}
+
+    /* API BLOCK */
+    .api-endpoint{display:flex;align-items:center;gap:.8rem;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.9rem 1.1rem;margin-top:1.4rem;margin-bottom:1.2rem;}
+    .api-method{font-family:var(--mono);font-size:.7rem;font-weight:600;background:rgba(125,232,160,.12);color:var(--accent3);padding:.18rem .45rem;border-radius:4px;}
+    .api-path{font-family:var(--mono);font-size:.86rem;color:var(--text);}
+    .api-desc{font-size:.76rem;color:var(--muted);}
+    .code-block{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.2rem;font-family:var(--mono);font-size:.76rem;line-height:1.75;overflow-x:auto;white-space:pre;margin-bottom:1rem;}
+    .ck{color:var(--accent2);}
+    .cv{color:var(--accent3);}
+    .cn{color:var(--accent);}
+    .cc{color:var(--muted);}
+
+    /* DEPLOY STEPS */
+    .deploy-steps{display:flex;flex-direction:column;gap:.9rem;margin-top:1.4rem;}
+    .deploy-step{display:flex;gap:1.1rem;align-items:flex-start;}
+    .ds-num{font-family:var(--outfit);font-size:.68rem;font-weight:800;min-width:28px;height:28px;border-radius:50%;background:rgba(232,90,138,.12);color:var(--phase);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem;}
+    .ds-body{}
+    .ds-label{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:.15rem;}
+    .ds-detail{font-size:.78rem;color:var(--muted);line-height:1.6;}
+    .ds-detail code{font-family:var(--mono);font-size:.76rem;color:var(--accent2);background:rgba(90,180,232,.08);padding:.1rem .3rem;border-radius:3px;}
+
+    /* CTA */
+    .cta-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2.2rem;text-align:center;margin-top:1.8rem;}
+    .cta-tag{font-family:var(--mono);font-size:.68rem;font-weight:500;color:var(--phase);margin-bottom:.6rem;}
+    .cta-title{font-family:var(--outfit);font-size:1.3rem;font-weight:700;color:var(--text);margin-bottom:.5rem;}
+    .cta-desc{font-size:.84rem;color:var(--muted);margin-bottom:1.4rem;max-width:420px;margin-left:auto;margin-right:auto;}
+    .cta-btn{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--outfit);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#000;background:var(--phase);padding:.6rem 1.3rem;border-radius:6px;text-decoration:none;transition:opacity var(--tr);}
+    .cta-btn:hover{opacity:.85;color:#000;}
+
+    /* FOOTER */
+    .pw-footer{border-top:1px solid var(--border);padding:2rem 5vw;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-top:2rem;}
+    .footer-brand{font-family:var(--outfit);font-size:.9rem;font-weight:800;color:var(--text);}
+    .footer-sub{font-size:.67rem;font-weight:300;color:var(--muted);}
+    .footer-members{display:flex;flex-direction:column;align-items:flex-end;gap:.18rem;}
+    .footer-member{font-size:.7rem;font-weight:300;color:var(--muted);}
+    .footer-univ{font-family:var(--outfit);font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-top:.1rem;}
+
+    .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+
+    @media(max-width:900px){.stack-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:600px){.pw-nav-links{display:none;}.pw-nav-cta{display:none;}.pw-hamburger{display:flex;}.phase-strip{flex-wrap:wrap;}.scroll-hint{display:none;}.pw-footer{flex-direction:column;align-items:flex-start;}.footer-members{align-items:flex-start;}.stack-grid{grid-template-columns:1fr 1fr;}}
+  </style>
+</head>
+<body>
+
+<nav class="pw-nav" id="navbar">
+  <a href="{{ url_for('home') }}" class="pw-nav-logo"><span class="logo-dot"></span>PetWatch</a>
+  <ul class="pw-nav-links">
+    <li><a href="{{ url_for('businessUnderstanding') }}">Business <span class="phase-badge">P1</span></a></li>
+    <li><a href="{{ url_for('dataEngineering') }}">Data Eng. <span class="phase-badge">P2</span></a></li>
+    <li><a href="{{ url_for('modelEngineering') }}">Models <span class="phase-badge">P3</span></a></li>
+    <li><a href="{{ url_for('modelEvaluation') }}">Evaluation <span class="phase-badge">P4</span></a></li>
+    <li><a href="{{ url_for('deployment') }}" class="active">Deployment <span class="phase-badge">P5</span></a></li>
+    <li><a href="{{ url_for('monitoring') }}">Monitoring <span class="phase-badge">P6</span></a></li>
+  </ul>
+  <a href="{{ url_for('modelEngineering') }}" class="pw-nav-cta">Run Model</a>
+  <div class="pw-hamburger" onclick="document.getElementById('mn').classList.toggle('open')"><span></span><span></span><span></span></div>
+</nav>
+<div class="mobile-nav-drawer" id="mn">
+  <a href="{{ url_for('businessUnderstanding') }}">Phase 1 — Business Understanding</a>
+  <a href="{{ url_for('dataEngineering') }}">Phase 2 — Data Engineering</a>
+  <a href="{{ url_for('modelEngineering') }}">Phase 3 — Model Engineering</a>
+  <a href="{{ url_for('modelEvaluation') }}">Phase 4 — Model Evaluation</a>
+  <a href="{{ url_for('deployment') }}">Phase 5 — Deployment</a>
+  <a href="{{ url_for('monitoring') }}">Phase 6 — Monitoring</a>
+</div>
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="hero-bg">
+    <img src="https://plus.unsplash.com/premium_photo-1707410049087-8a0a5ab77bce?q=80&w=869&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"/>
+  </div>
+  <div class="hero-content">
+    <a href="{{ url_for('home') }}" class="back-link">&#8592; Home</a>
+    <p class="hero-eyebrow">CRISP-ML &middot; Phase 05 of 06</p>
+    <h1 class="hero-title">Model<br><span class="aw">Deployment</span></h1>
+    <p class="hero-desc">
+      System architecture, <strong>technology stack</strong>, REST API documentation, and production deployment pipeline on <strong>Render.com</strong> — from prediction request to classified risk level.
+    </p>
+    <div class="phase-strip">
+      <div class="phase-step done"><span class="ps-num">P1</span> Business</div>
+      <div class="phase-step done"><span class="ps-num">P2</span> Data Eng.</div>
+      <div class="phase-step done"><span class="ps-num">P3</span> Models</div>
+      <div class="phase-step done"><span class="ps-num">P4</span> Evaluation</div>
+      <div class="phase-step current"><span class="ps-num">P5</span> Deployment</div>
+      <div class="phase-step"><span class="ps-num">P6</span> Monitoring</div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+
+  <!-- ARCHITECTURE -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 01 &mdash; Architecture</p>
+    <h2 class="sec-title">Request Flow</h2>
+    <p class="sec-body">A prediction request travels through four stages: the browser sends feature values via AJAX, Render routes to Flask, Flask calls the Random Forest model, and returns a JSON response with the risk label and probabilities.</p>
+    <div class="arch-flow">
+      <div class="arch-node"><div class="arch-node-tag">[USR]</div><div class="arch-node-label">Browser</div><div class="arch-node-sub">Form / AJAX</div></div>
+      <div class="arch-arrow">&#8594;</div>
+      <div class="arch-node"><div class="arch-node-tag">[CDN]</div><div class="arch-node-label">Render.com</div><div class="arch-node-sub">HTTPS / gunicorn</div></div>
+      <div class="arch-arrow">&#8594;</div>
+      <div class="arch-node"><div class="arch-node-tag">[API]</div><div class="arch-node-label">Flask</div><div class="arch-node-sub">app.py · router</div></div>
+      <div class="arch-arrow">&#8594;</div>
+      <div class="arch-node"><div class="arch-node-tag">[ML]</div><div class="arch-node-label">Random Forest</div><div class="arch-node-sub">scikit-learn</div></div>
+      <div class="arch-arrow">&#8594;</div>
+      <div class="arch-node" style="border-color:rgba(125,232,160,.3);"><div class="arch-node-tag" style="color:var(--accent3);">[OK]</div><div class="arch-node-label">JSON Result</div><div class="arch-node-sub">HIGH / MED / LOW</div></div>
+    </div>
+    <p class="arch-note">POST /api/predict &rarr; {"ok": true, "rf": {"label": "HIGH", "proba": {...}}}</p>
+  </section>
+
+  <!-- TECH STACK -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 02 &mdash; Stack</p>
+    <h2 class="sec-title">Technology Stack</h2>
+    <p class="sec-body">PetWatch is built on a lightweight Python-native stack optimized for fast model serving and straightforward deployment on free-tier cloud platforms.</p>
+    <div class="stack-grid">
+      <div class="stack-card"><div class="stack-tag">[PY]</div><div class="stack-name">Python 3.11</div><div class="stack-role">Core runtime for all backend logic, data processing, and ML inference.</div><span class="stack-badge">Backend</span></div>
+      <div class="stack-card"><div class="stack-tag">[FK]</div><div class="stack-name">Flask</div><div class="stack-role">Lightweight web framework for routing, Jinja2 templating, and the REST API endpoint.</div><span class="stack-badge">Web Server</span></div>
+      <div class="stack-card"><div class="stack-tag">[RF]</div><div class="stack-name">scikit-learn</div><div class="stack-role">RandomForestClassifier, cross-validation, and all preprocessing utilities.</div><span class="stack-badge">ML Engine</span></div>
+      <div class="stack-card"><div class="stack-tag">[PD]</div><div class="stack-name">pandas / numpy</div><div class="stack-role">Dataset loading, feature engineering, and numerical operations.</div><span class="stack-badge">Data Layer</span></div>
+      <div class="stack-card"><div class="stack-tag">[J2]</div><div class="stack-name">Jinja2</div><div class="stack-role">Server-side HTML templating integrated with Flask for dynamic data injection.</div><span class="stack-badge">Templating</span></div>
+      <div class="stack-card"><div class="stack-tag">[CH]</div><div class="stack-name">Chart.js</div><div class="stack-role">Interactive charts for feature importance, confusion matrix, and risk distributions.</div><span class="stack-badge">Visualization</span></div>
+      <div class="stack-card"><div class="stack-tag">[RD]</div><div class="stack-name">Render.com</div><div class="stack-role">Cloud platform for production deployment. Auto-deploys from GitHub on every push.</div><span class="stack-badge">Hosting</span></div>
+      <div class="stack-card"><div class="stack-tag">[BS]</div><div class="stack-name">Bootstrap 5</div><div class="stack-role">Responsive grid and utility classes for consistent cross-device layout.</div><span class="stack-badge">CSS</span></div>
+    </div>
+  </section>
+
+  <!-- API DOCS -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 03 &mdash; API</p>
+    <h2 class="sec-title">Prediction Endpoint</h2>
+    <p class="sec-body">A single REST endpoint accepts the 9 welfare indicators as JSON and returns the Random Forest risk classification with class probabilities. No authentication required.</p>
+
+    <div class="api-endpoint">
+      <span class="api-method">POST</span>
+      <span class="api-path">/api/predict</span>
+      <span class="api-desc">— Predict abandonment risk from zone indicators</span>
+    </div>
+
+    <p style="font-size:.76rem;color:var(--muted);margin-bottom:.5rem;font-weight:500;">Request body (JSON)</p>
+    <div class="code-block"><span class="cc">// All numeric — 9 feature variables</span>
+{
+  <span class="ck">"citizen_reports"</span>:             <span class="cn">45</span>,
+  <span class="ck">"abuse_cases"</span>:                  <span class="cn">12</span>,
+  <span class="ck">"animals_seized"</span>:               <span class="cn">8</span>,
+  <span class="ck">"vet_emergencies"</span>:              <span class="cn">20</span>,
+  <span class="ck">"microchip_coverage"</span>:           <span class="cn">0.25</span>,
+  <span class="ck">"sterilization_rate"</span>:           <span class="cn">0.40</span>,
+  <span class="ck">"stray_density"</span>:                <span class="cn">85.5</span>,
+  <span class="ck">"prior_cases_6m"</span>:               <span class="cn">30</span>,
+  <span class="ck">"institutional_response_days"</span>:  <span class="cn">7</span>
+}</div>
+
+    <p style="font-size:.76rem;color:var(--muted);margin-bottom:.5rem;font-weight:500;">Response (JSON)</p>
+    <div class="code-block">{
+  <span class="ck">"ok"</span>: <span class="cv">true</span>,
+  <span class="ck">"rf"</span>: {
+    <span class="ck">"label"</span>: <span class="cv">"HIGH"</span>,
+    <span class="ck">"proba"</span>: {
+      <span class="ck">"HIGH"</span>:   <span class="cn">82.4</span>,
+      <span class="ck">"MEDIUM"</span>: <span class="cn">14.1</span>,
+      <span class="ck">"LOW"</span>:    <span class="cn">3.5</span>
+    }
+  }
+}</div>
+  </section>
+
+  <!-- RENDER DEPLOYMENT -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 04 &mdash; Render.com</p>
+    <h2 class="sec-title">Deployment on Render</h2>
+    <p class="sec-body">PetWatch is deployed as a Web Service on Render's free tier. The platform auto-detects Python and serves the Flask application via gunicorn. Every push to <code style="font-family:var(--mono);font-size:.82rem;color:var(--accent2);">main</code> triggers a new build.</p>
+    <div class="deploy-steps">
+      <div class="deploy-step"><div class="ds-num">01</div><div class="ds-body"><div class="ds-label">GitHub Repository</div><div class="ds-detail">Source code is pushed to a public GitHub repo. Render connects directly via OAuth — no manual configuration needed.</div></div></div>
+      <div class="deploy-step"><div class="ds-num">02</div><div class="ds-body"><div class="ds-label">Build Command</div><div class="ds-detail"><code>pip install -r requirements.txt</code> installs Flask, scikit-learn, pandas, numpy, and gunicorn automatically.</div></div></div>
+      <div class="deploy-step"><div class="ds-num">03</div><div class="ds-body"><div class="ds-label">Start Command</div><div class="ds-detail"><code>gunicorn app:app</code> launches the production server on Render's assigned PORT environment variable.</div></div></div>
+      <div class="deploy-step"><div class="ds-num">04</div><div class="ds-body"><div class="ds-label">Auto-Deploy</div><div class="ds-detail">Every push to <code>main</code> triggers a new build. Zero-downtime deploys are handled by Render automatically — no manual intervention required.</div></div></div>
+      <div class="deploy-step"><div class="ds-num">05</div><div class="ds-body"><div class="ds-label">Dataset &amp; Model</div><div class="ds-detail">The synthetic CSV is bundled in the repository. The RF model is retrained in-memory on each cold start — no serialized model file required.</div></div></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 05 &mdash; Try It</p>
+    <h2 class="sec-title">Run the Prediction System</h2>
+    <p class="sec-body">Enter the welfare indicators of any Bogotá locality and get a real-time abandonment risk classification from the deployed Random Forest model.</p>
+    <div class="cta-block">
+      <div class="cta-tag">/ api / predict</div>
+      <h3 class="cta-title">Predict Abandonment Risk</h3>
+      <p class="cta-desc">Fill in the 9 zone indicators and run the Random Forest model directly in your browser — no setup required.</p>
+      <a href="{{ url_for('modelEngineering') }}" class="cta-btn">&#9654; Run Prediction</a>
+    </div>
+  </section>
+
+</div>
+
+<footer class="pw-footer">
+  <div><p class="footer-brand">PetWatch</p><p class="footer-sub">Machine Learning &middot; CRISP-ML &middot; Phase 05 — Deployment</p></div>
+  <div class="footer-members">
+    <span class="footer-member">Elkin Yamith Almonacid López</span>
+    <span class="footer-member">Brayan David Cuitiva Umbarila</span>
+    <span class="footer-member">Brayan Yair Mendez Rodriguez</span>
+    <span class="footer-univ">Universidad de Cundinamarca</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+window.addEventListener('scroll',()=>{
+  document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>20);
+});
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});
+},{threshold:.06});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
