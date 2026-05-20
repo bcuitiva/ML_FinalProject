@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PetWatch — Data Engineering</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <style>
+    :root{
+      --bg:#0a0b0f; --bg2:#0f1118; --surface:#13151e; --surface2:#191c28;
+      --border:#1e2235; --text:#eceef5; --muted:#5a5f7a;
+      --accent:#e8935a; --accent2:#5ab4e8; --accent3:#7de8a0; --danger:#e85a6a;
+      --outfit:'Outfit',sans-serif; --dm:'DM Sans',sans-serif;
+      --tr:0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:var(--dm);overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:0.4;}
+
+    /* ── NAV ── */
+    .pw-nav{position:fixed;top:0;left:0;right:0;z-index:900;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,11,15,0.0);backdrop-filter:blur(0px);border-bottom:1px solid transparent;transition:background 0.4s ease,backdrop-filter 0.4s ease,border-color 0.4s ease;}
+    .pw-nav.scrolled{background:rgba(10,11,15,0.92);backdrop-filter:blur(16px);border-bottom-color:var(--border);}
+    .pw-nav-logo{font-family:var(--outfit);font-size:1.2rem;font-weight:800;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:0.5rem;}
+    .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);display:inline-block;animation:pulse-dot 2s ease-in-out infinite;}
+    @keyframes pulse-dot{0%,100%{transform:scale(1);}50%{transform:scale(1.4);opacity:0.7;}}
+    .pw-nav-links{display:flex;align-items:center;gap:0.1rem;list-style:none;}
+    .pw-nav-links a{font-family:var(--dm);font-size:0.7rem;letter-spacing:0.05em;text-transform:uppercase;color:rgba(236,238,245,0.7);text-decoration:none;padding:0.38rem 0.6rem;border-radius:4px;transition:color var(--tr),background var(--tr);white-space:nowrap;}
+    .pw-nav-links a:hover,.pw-nav-links a.active{color:var(--text);background:rgba(255,255,255,0.08);}
+    .phase-badge{font-size:0.56rem;font-weight:600;background:var(--accent2);color:#000;padding:0.1rem 0.28rem;border-radius:3px;margin-left:0.2rem;vertical-align:middle;}
+    .pw-nav-cta{font-family:var(--outfit);font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#000;background:var(--accent2);padding:0.42rem 0.9rem;border-radius:4px;text-decoration:none;transition:opacity var(--tr);}
+    .pw-nav-cta:hover{opacity:0.85;color:#000;}
+
+    /* ── HERO ── */
+    .page-hero{position:relative;min-height:100vh;display:grid;overflow:hidden;}
+    .hero-bg{position:absolute;inset:0;z-index:0;}
+    .hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center 40%;filter:saturate(0.65) brightness(0.5);}
+    .hero-bg::before{content:'';position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,rgba(10,11,15,0.75) 40%,rgba(10,11,15,0.15) 72%,transparent 100%),linear-gradient(90deg,rgba(10,11,15,0.5) 0%,transparent 65%);z-index:1;}
+    .hero-bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 40%,rgba(90,180,232,0.07) 0%,transparent 60%);z-index:2;}
+    .hero-content{position:relative;z-index:3;padding:8rem 5vw 5rem;max-width:960px;width:100%;align-self:end;}
+    .back-link{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(236,238,245,0.5);text-decoration:none;margin-bottom:2.5rem;transition:color var(--tr);}
+    .back-link:hover{color:var(--text);}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.68rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent2);margin-bottom:1.5rem;opacity:0;animation:fadeUp 0.8s 0.1s ease both;}
+    .hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--accent2);}
+    .hero-title{font-family:var(--outfit);font-size:clamp(2.8rem,6vw,5.5rem);font-weight:700;letter-spacing:-0.02em;line-height:1.1;color:var(--text);margin-bottom:1.5rem;opacity:0;animation:fadeUp 0.8s 0.3s ease both;}
+    .hero-title .aw{color:var(--accent2);}
+    .hero-desc{font-size:1rem;font-weight:300;color:rgba(236,238,245,0.65);line-height:1.75;max-width:580px;margin-bottom:2.5rem;opacity:0;animation:fadeUp 0.8s 0.5s ease both;}
+    .hero-desc strong{color:var(--text);font-weight:500;}
+    .phase-strip{display:flex;align-items:center;gap:0;opacity:0;animation:fadeUp 0.8s 0.7s ease both;}
+    .phase-step{display:flex;align-items:center;gap:0.4rem;font-size:0.62rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:0.4rem 0.8rem;border:1px solid var(--border);background:rgba(19,21,30,0.7);backdrop-filter:blur(8px);}
+    .phase-step:first-child{border-radius:4px 0 0 4px;}
+    .phase-step:last-child{border-radius:0 4px 4px 0;}
+    .phase-step.done{background:rgba(232,147,90,0.1);border-color:rgba(232,147,90,0.25);color:var(--accent);}
+    .phase-step.current{background:var(--accent2);border-color:var(--accent2);color:#000;}
+    .phase-step.current .ps-num{color:#000;}
+    .ps-num{font-family:var(--outfit);font-weight:700;font-size:0.58rem;}
+    .scroll-hint{position:absolute;bottom:2rem;right:5vw;z-index:3;display:flex;flex-direction:column;align-items:center;gap:0.5rem;opacity:0;animation:fadeUp 1s 1s ease both;}
+    .scroll-hint span{font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(236,238,245,0.3);}
+    .scroll-line{width:1px;height:48px;background:linear-gradient(180deg,rgba(90,180,232,0.6),transparent);animation:scrollPulse 2s ease-in-out infinite;}
+    @keyframes scrollPulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+
+    /* ── CONTENT ── */
+    .content-wrap{max-width:960px;margin:0 auto;padding:0 5vw;}
+    .section{padding:4.5rem 0;border-bottom:1px solid var(--border);}
+    .section:last-child{border-bottom:none;padding-bottom:3rem;}
+    .sec-eyebrow{font-size:0.62rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent2);margin-bottom:0.7rem;display:flex;align-items:center;gap:0.4rem;}
+    .sec-eyebrow::before{content:'';width:16px;height:1px;background:var(--accent2);}
+    .sec-title{font-family:var(--outfit);font-size:clamp(1.4rem,3vw,2rem);font-weight:700;letter-spacing:-0.02em;line-height:1.2;color:var(--text);margin-bottom:1.2rem;}
+    .sec-body{font-size:0.9rem;font-weight:300;color:var(--muted);line-height:1.8;max-width:720px;}
+    .sec-body strong{color:var(--text);font-weight:500;}
+
+    /* ── PIPELINE ── */
+    .pipeline{display:flex;flex-direction:column;gap:0;margin-top:2rem;position:relative;}
+    .pipeline::before{content:'';position:absolute;left:1.5rem;top:0;bottom:0;width:1px;background:var(--border);}
+    .pipe-step{display:flex;gap:1.5rem;align-items:flex-start;padding:1.5rem 0;}
+    .pipe-num{width:3rem;height:3rem;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--outfit);font-size:0.75rem;font-weight:700;color:var(--accent2);flex-shrink:0;z-index:1;}
+    .pipe-body{flex:1;padding-top:0.6rem;}
+    .pipe-title{font-family:var(--outfit);font-size:1rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;}
+    .pipe-desc{font-size:0.82rem;font-weight:300;color:var(--muted);line-height:1.65;}
+    .pipe-desc code{font-size:0.78rem;background:var(--surface2);padding:0.1rem 0.35rem;border-radius:3px;color:var(--accent2);}
+
+    /* ── DATASETS ── */
+    .datasets-grid{display:flex;flex-direction:column;gap:0.5rem;margin-top:2rem;}
+    .ds-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color var(--tr);}
+    .ds-card.open{border-color:rgba(90,180,232,0.4);}
+    .ds-header{display:flex;align-items:center;gap:1rem;padding:1.2rem 1.4rem;cursor:pointer;transition:background var(--tr);}
+    .ds-header:hover{background:rgba(255,255,255,0.025);}
+    .ds-source{font-size:0.6rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:0.2rem 0.5rem;border-radius:3px;flex-shrink:0;}
+    .ds-source.cali{background:rgba(232,147,90,0.15);color:var(--accent);border:1px solid rgba(232,147,90,0.3);}
+    .ds-source.bogota{background:rgba(90,180,232,0.12);color:var(--accent2);border:1px solid rgba(90,180,232,0.25);}
+    .ds-name{font-family:var(--outfit);font-size:0.85rem;font-weight:600;color:var(--text);flex:1;}
+    .ds-records{font-family:var(--outfit);font-size:0.78rem;font-weight:700;color:var(--muted);flex-shrink:0;white-space:nowrap;}
+    .ds-arrow{font-size:0.72rem;color:var(--muted);transition:transform var(--tr);flex-shrink:0;margin-left:0.5rem;}
+    .ds-card.open .ds-arrow{transform:rotate(90deg);color:var(--accent2);}
+    .ds-body{max-height:0;overflow:hidden;transition:max-height 0.4s ease;}
+    .ds-card.open .ds-body{max-height:600px;}
+    .ds-body-inner{padding:1rem 1.4rem 1.4rem;border-top:1px solid var(--border);}
+    .ds-desc{font-size:0.82rem;font-weight:300;color:var(--muted);line-height:1.7;margin-bottom:1rem;}
+    .cols-title{font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;}
+    .cols-grid{display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:0.9rem;}
+    .col-tag{font-family:var(--outfit);font-size:0.7rem;font-weight:500;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:0.22rem 0.55rem;color:var(--text);}
+    .clean-list{display:flex;flex-direction:column;gap:0.3rem;}
+    .clean-item{display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem;font-weight:300;color:var(--muted);line-height:1.55;}
+    .clean-dot{width:5px;height:5px;border-radius:50%;background:var(--accent3);flex-shrink:0;margin-top:0.42rem;}
+
+    /* ── SCHEMA TABLE ── */
+    .schema-table-wrap{margin-top:2rem;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+    .schema-table{width:100%;border-collapse:collapse;}
+    .schema-table thead tr{background:var(--surface2);border-bottom:1px solid var(--border);}
+    .schema-table th{font-family:var(--outfit);font-size:0.62rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:0.85rem 1.1rem;text-align:left;}
+    .schema-table td{font-size:0.8rem;font-weight:300;color:var(--text);padding:0.75rem 1.1rem;border-bottom:1px solid var(--border);vertical-align:middle;line-height:1.5;}
+    .schema-table tr:last-child td{border-bottom:none;}
+    .schema-table tr:hover td{background:rgba(255,255,255,0.02);}
+    .col-name{font-family:var(--outfit);font-size:0.8rem;font-weight:600;color:var(--accent2);}
+    .type-badge{font-size:0.62rem;font-weight:500;background:rgba(90,180,232,0.1);color:var(--accent2);border:1px solid rgba(90,180,232,0.2);border-radius:3px;padding:0.12rem 0.4rem;}
+
+    /* ── STATS STRIP ── */
+    .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:2rem;}
+    .stat-cell{background:var(--surface);padding:1.5rem 1.2rem;text-align:center;}
+    .stat-val{font-family:var(--outfit);font-size:1.9rem;font-weight:800;letter-spacing:-0.04em;color:var(--text);line-height:1;}
+    .stat-val .sa{color:var(--accent2);}
+    .stat-lbl{font-size:0.64rem;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-top:0.35rem;}
+
+    /* ── NULL TABLE ── */
+    .null-table-wrap{margin-top:1.5rem;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+    .null-table{width:100%;border-collapse:collapse;}
+    .null-table thead tr{background:var(--surface2);border-bottom:1px solid var(--border);}
+    .null-table th{font-family:var(--outfit);font-size:0.62rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:0.85rem 1.1rem;text-align:left;}
+    .null-table td{font-size:0.8rem;font-weight:300;color:var(--text);padding:0.75rem 1.1rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+    .null-table tr:last-child td{border-bottom:none;}
+    .null-table tr:hover td{background:rgba(255,255,255,0.02);}
+    .treatment-badge{font-size:0.65rem;font-weight:500;border-radius:3px;padding:0.15rem 0.45rem;}
+    .treatment-badge.fill{background:rgba(125,232,160,0.12);color:var(--accent3);border:1px solid rgba(125,232,160,0.25);}
+    .treatment-badge.drop{background:rgba(232,90,106,0.1);color:var(--danger);border:1px solid rgba(232,90,106,0.2);}
+    .treatment-badge.nat{background:rgba(90,180,232,0.1);color:var(--accent2);border:1px solid rgba(90,180,232,0.2);}
+
+    /* ── ALGO CARDS ── */
+    .algo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-top:2rem;}
+    .algo-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.5rem;position:relative;overflow:hidden;transition:border-color var(--tr);}
+    .algo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--algo-color,var(--accent));}
+    .algo-card:hover{border-color:rgba(255,255,255,0.1);}
+    .algo-num{font-family:var(--outfit);font-size:0.58rem;font-weight:700;letter-spacing:0.14em;color:var(--algo-color,var(--accent));opacity:0.7;margin-bottom:0.5rem;}
+    .algo-name{font-family:var(--outfit);font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:0.4rem;line-height:1.25;}
+    .algo-role{font-size:0.72rem;font-weight:300;color:var(--muted);line-height:1.5;}
+    .algo-link{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.68rem;font-weight:500;color:var(--algo-color,var(--accent));text-decoration:none;margin-top:0.8rem;transition:gap var(--tr);}
+    .algo-link:hover{gap:0.5rem;color:var(--algo-color,var(--accent));}
+
+    /* ── FOOTER ── */
+    .pw-footer{border-top:1px solid var(--border);padding:2rem 5vw;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-top:2rem;}
+    .footer-brand{font-family:var(--outfit);font-size:0.9rem;font-weight:800;color:var(--text);}
+    .footer-sub{font-size:0.68rem;font-weight:300;color:var(--muted);}
+    .footer-members{display:flex;flex-direction:column;align-items:flex-end;gap:0.18rem;}
+    .footer-member{font-size:0.7rem;font-weight:300;color:var(--muted);}
+    .footer-univ{font-family:var(--outfit);font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-top:0.1rem;}
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+    .reveal{opacity:0;transform:translateY(18px);transition:opacity 0.6s ease,transform 0.6s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+
+    @media(max-width:768px){
+      .stats-strip{grid-template-columns:repeat(2,1fr);}
+      .algo-grid{grid-template-columns:1fr;}
+      .phase-strip{flex-wrap:wrap;}
+      .scroll-hint{display:none;}
+      .pw-footer{flex-direction:column;align-items:flex-start;}
+      .footer-members{align-items:flex-start;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="pw-nav" id="navbar">
+  <a href="{{ url_for('home') }}" class="pw-nav-logo"><span class="logo-dot"></span>PetWatch</a>
+  <ul class="pw-nav-links">
+    <li><a href="{{ url_for('businessUnderstanding') }}">Business <span class="phase-badge">P1</span></a></li>
+    <li><a href="{{ url_for('dataEngineering') }}" class="active">Data Eng. <span class="phase-badge">P2</span></a></li>
+    <li><a href="{{ url_for('modelEngineering') }}">Models <span class="phase-badge">P3</span></a></li>
+    <li><a href="{{ url_for('modelEvaluation') }}">Evaluation <span class="phase-badge">P4</span></a></li>
+    <li><a href="{{ url_for('deployment') }}">Deployment <span class="phase-badge">P5</span></a></li>
+    <li><a href="{{ url_for('monitoring') }}">Monitoring <span class="phase-badge">P6</span></a></li>
+  </ul>
+  <a href="{{ url_for('modelEngineering') }}" class="pw-nav-cta">Run Model</a>
+</nav>
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="hero-bg">
+    <img
+      src="{{ url_for('static', filename='img/hero-dog.jpg') }}"
+      alt="Dog — data about animal vulnerability"
+      loading="eager"
+      onerror="this.src='https://images.unsplash.com/photo-1515002246390-7bf7e8f87b54?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"
+    />
+  </div>
+  <div class="hero-content">
+    <a href="{{ url_for('home') }}" class="back-link">&#8592; Home</a>
+    <p class="hero-eyebrow">CRISP-ML &middot; Phase 02 of 06</p>
+    <h1 class="hero-title">
+      Data<br><span class="aw">Engineering</span>
+    </h1>
+    <p class="hero-desc">
+      Five open datasets from <strong>Bogotá and Cali</strong> — cleaned, transformed,
+      and unified into a single analysis-ready corpus of <strong>17,742 records</strong>
+      across 16 standardized columns.
+    </p>
+    <div class="phase-strip">
+      <div class="phase-step done"><span class="ps-num">P1</span> Business</div>
+      <div class="phase-step current"><span class="ps-num">P2</span> Data Eng.</div>
+      <div class="phase-step"><span class="ps-num">P3</span> Models</div>
+      <div class="phase-step"><span class="ps-num">P4</span> Evaluation</div>
+      <div class="phase-step"><span class="ps-num">P5</span> Deployment</div>
+      <div class="phase-step"><span class="ps-num">P6</span> Monitoring</div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+
+  <!-- 01 PIPELINE -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 01</p>
+    <h2 class="sec-title">Data Engineering Pipeline</h2>
+    <p class="sec-body">A reproducible five-step pipeline — from raw source collection to a unified dataset ready for model training.</p>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">01</div>
+        <div class="pipe-body">
+          <p class="pipe-title">Source Collection</p>
+          <p class="pipe-desc">Five CSV files downloaded from two official Colombian open data portals — <strong>datosabiertos.bogota.gov.co</strong> (4 datasets) and <strong>datos.cali.gov.co</strong> (1 dataset). All files are publicly available under open government data licenses.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">02</div>
+        <div class="pipe-body">
+          <p class="pipe-title">Individual Inspection</p>
+          <p class="pipe-desc">Each dataset was inspected for shape, column types, null values, encoding issues, and delimiter format. The microchip dataset required Latin-1 decoding and semicolon splitting. All issues were documented before any transformation.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">03</div>
+        <div class="pipe-body">
+          <p class="pipe-title">Cleaning &amp; Transformation</p>
+          <p class="pipe-desc">Each dataset was cleaned independently: date parsing, species normalization, locality code-to-name mapping, null imputation with sentinel values, and removal of records with no geographic reference. Zero records were dropped due to null values.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">04</div>
+        <div class="pipe-body">
+          <p class="pipe-title">Schema Unification</p>
+          <p class="pipe-desc">All five cleaned DataFrames were mapped to a <strong>16-column unified schema</strong> using vertical concatenation via <code>pandas.concat()</code>. Columns absent in certain sources were initialized to 0, preserving interpretability across event types.</p>
+        </div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num">05</div>
+        <div class="pipe-body">
+          <p class="pipe-title">Output &amp; Documentation</p>
+          <p class="pipe-desc">The unified dataset was exported as <strong>petwatch_dataset_unificado.csv</strong> (UTF-8). The full cleaning process is reproducible via <strong>data_cleaning.py</strong> and documented in the Data Engineering Report.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 DATASETS -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 02</p>
+    <h2 class="sec-title">Source Datasets</h2>
+    <p class="sec-body">Select each dataset to inspect its columns, cleaning decisions, and contribution to the unified corpus.</p>
+    <div class="datasets-grid">
+
+      <div class="ds-card" id="ds1">
+        <div class="ds-header" onclick="toggleDs('ds1')">
+          <span class="ds-source cali">Cali</span>
+          <span class="ds-name">animales_adoptados_en_el_centro_de_bienestar_animal.csv</span>
+          <span class="ds-records">785 records</span>
+          <span class="ds-arrow">&#8594;</span>
+        </div>
+        <div class="ds-body"><div class="ds-body-inner">
+          <p class="ds-desc">Individual adoption events from the Animal Welfare Center in Cali. Each row is one adoption and includes date, species, commune, and neighborhood of the adopter.</p>
+          <p class="cols-title">Columns</p>
+          <div class="cols-grid"><span class="col-tag">_id</span><span class="col-tag">Fecha</span><span class="col-tag">Especie</span><span class="col-tag">Comuna/Corregimiento</span><span class="col-tag">Barrio/Centro poblado</span></div>
+          <p class="cols-title">Cleaning applied</p>
+          <div class="clean-list">
+            <div class="clean-item"><span class="clean-dot"></span><span>63 null values in Comuna filled with 'SIN_DATO' — records retained</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>11 null values in Barrio filled with 'SIN_DATO'</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>10 non-standard species categories reclassified as 'OTRO'</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>ISO datetime strings parsed to date objects</span></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="ds-card" id="ds2">
+        <div class="ds-header" onclick="toggleDs('ds2')">
+          <span class="ds-source bogota">Bogotá</span>
+          <span class="ds-name">brigada_medica_veterinaria_localidad.csv</span>
+          <span class="ds-records">20 records</span>
+          <span class="ds-arrow">&#8594;</span>
+        </div>
+        <div class="ds-body"><div class="ds-body-inner">
+          <p class="ds-desc">Aggregated veterinary brigade activity per Bogotá locality. Each row is one locality's statistics for the reporting period (2024-12-31).</p>
+          <p class="cols-title">Columns</p>
+          <div class="cols-grid"><span class="col-tag">Fecha</span><span class="col-tag">Localidad</span><span class="col-tag">Atenciones</span><span class="col-tag">Caninos</span><span class="col-tag">Felinos</span><span class="col-tag">Hembras</span><span class="col-tag">Machos</span><span class="col-tag">Castrados</span></div>
+          <p class="cols-title">Cleaning applied</p>
+          <div class="clean-list">
+            <div class="clean-item"><span class="clean-dot"></span><span>Locality integer codes (1–20) mapped to official Bogotá locality names</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>Geometric columns (Shape_Leng, Shape_Area) removed — 0 records dropped</span></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="ds-card" id="ds3">
+        <div class="ds-header" onclick="toggleDs('ds3')">
+          <span class="ds-source bogota">Bogotá</span>
+          <span class="ds-name">maltratoloc_06_2025.csv</span>
+          <span class="ds-records">20 records</span>
+          <span class="ds-arrow">&#8594;</span>
+        </div>
+        <div class="ds-body"><div class="ds-body-inner">
+          <p class="ds-desc">Monthly animal abuse cases per locality in Bogotá. Includes animals attended, seized by authorities, and inspection visits conducted (June 2025).</p>
+          <p class="cols-title">Columns</p>
+          <div class="cols-grid"><span class="col-tag">Fecha</span><span class="col-tag">Localidad</span><span class="col-tag">Atendidos</span><span class="col-tag">Aprehendid</span><span class="col-tag">Visitas</span></div>
+          <p class="cols-title">Cleaning applied</p>
+          <div class="clean-list">
+            <div class="clean-item"><span class="clean-dot"></span><span>Locality codes mapped to official locality names</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>'Aprehendid' documented as truncated name — full meaning: animals seized</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>Geometric columns removed — 0 records dropped</span></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="ds-card" id="ds4">
+        <div class="ds-header" onclick="toggleDs('ds4')">
+          <span class="ds-source bogota">Bogotá</span>
+          <span class="ds-name">Urgencia_veterinaria_localidad.csv</span>
+          <span class="ds-records">20 records</span>
+          <span class="ds-arrow">&#8594;</span>
+        </div>
+        <div class="ds-body"><div class="ds-body-inner">
+          <p class="ds-desc">Veterinary emergency attendances per locality, broken down by referral source and medical condition type. 34 columns total, covering 16 condition categories.</p>
+          <p class="cols-title">Key columns</p>
+          <div class="cols-grid"><span class="col-tag">Fecha</span><span class="col-tag">Localidad</span><span class="col-tag">Atenciones</span><span class="col-tag">Ciudadano</span><span class="col-tag">Caninos</span><span class="col-tag">Felinos</span><span class="col-tag">[16 condition types]</span></div>
+          <p class="cols-title">Cleaning applied</p>
+          <div class="clean-list">
+            <div class="clean-item"><span class="clean-dot"></span><span>Locality codes mapped to names; CodLoc column dropped (redundant)</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>Medical condition columns excluded from unified schema — preserved in source</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>261 citizen-reported cases identified — key for the civic reporting dimension</span></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="ds-card" id="ds5">
+        <div class="ds-header" onclick="toggleDs('ds5')">
+          <span class="ds-source bogota">Bogotá</span>
+          <span class="ds-name">c4p-animales-identificados-con-microship-por-localidad.csv</span>
+          <span class="ds-records">23,410 raw &rarr; 16,897 clean</span>
+          <span class="ds-arrow">&#8594;</span>
+        </div>
+        <div class="ds-body"><div class="ds-body-inner">
+          <p class="ds-desc">Individual microchip registration records for animals in Bogotá. Each row is one registered animal with species, sex, size, danger classification, and locality. Most complex dataset in the pipeline.</p>
+          <p class="cols-title">Columns (semicolon-delimited)</p>
+          <div class="cols-grid"><span class="col-tag">microchip_id</span><span class="col-tag">especie</span><span class="col-tag">sexo</span><span class="col-tag">tamano</span><span class="col-tag">peligroso</span><span class="col-tag">localidad</span></div>
+          <p class="cols-title">Cleaning applied</p>
+          <div class="clean-list">
+            <div class="clean-item"><span class="clean-dot"></span><span>Encoding fixed: Latin-1 — caused UnicodeDecodeError on initial UTF-8 read</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>Single-column CSV split on semicolon delimiter into 6 proper columns</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>46 records with 'NO IDENTIFICADO' species removed</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>6,476 records with locality 'SIN IDENTIFICAR' removed — no geographic reference</span></div>
+            <div class="clean-item"><span class="clean-dot"></span><span>'potencialmente_peligroso' converted from YES/NO string to binary 0/1</span></div>
+          </div>
+        </div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 03 SCHEMA -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 03</p>
+    <h2 class="sec-title">Unified Schema — 16 Columns</h2>
+    <p class="sec-body">All five datasets were mapped to this common structure. Columns absent in certain sources are initialized to 0 to preserve interpretability across event types.</p>
+    <div class="schema-table-wrap">
+      <table class="schema-table">
+        <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="col-name">fuente</span></td><td><span class="type-badge">String</span></td><td style="color:var(--muted);">Source dataset identifier (e.g. BOGOTA_MALTRATO)</td></tr>
+          <tr><td><span class="col-name">ciudad</span></td><td><span class="type-badge">String</span></td><td style="color:var(--muted);">City of origin — BOGOTÁ or CALI</td></tr>
+          <tr><td><span class="col-name">fecha</span></td><td><span class="type-badge">Date / NaT</span></td><td style="color:var(--muted);">Event date — NaT for microchip dataset (no date field)</td></tr>
+          <tr><td><span class="col-name">especie</span></td><td><span class="type-badge">String</span></td><td style="color:var(--muted);">CANINO, FELINO, MIXTO, or OTRO</td></tr>
+          <tr><td><span class="col-name">localidad_zona</span></td><td><span class="type-badge">String</span></td><td style="color:var(--muted);">Locality or commune name — uppercase standardized</td></tr>
+          <tr><td><span class="col-name">barrio</span></td><td><span class="type-badge">String</span></td><td style="color:var(--muted);">Neighborhood name or SIN_DATO sentinel</td></tr>
+          <tr><td><span class="col-name">evento</span></td><td><span class="type-badge">String</span></td><td style="color:var(--muted);">Event type: ADOPCION, MALTRATO, BRIGADA_MEDICA, URGENCIA_VETERINARIA, MICROCHIP</td></tr>
+          <tr><td><span class="col-name">atenciones</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">Total animals attended or registered in the event</td></tr>
+          <tr><td><span class="col-name">caninos</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">Count or binary flag for canines</td></tr>
+          <tr><td><span class="col-name">felinos</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">Count or binary flag for felines</td></tr>
+          <tr><td><span class="col-name">maltrato_atendidos</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">Animals attended due to abuse — 0 for non-abuse sources</td></tr>
+          <tr><td><span class="col-name">maltrato_aprehendidos</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">Animals seized by authorities — 0 for non-abuse sources</td></tr>
+          <tr><td><span class="col-name">urgencias</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">Emergency veterinary cases — 0 for non-emergency sources</td></tr>
+          <tr><td><span class="col-name">microchip</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">1 if microchip registry record, 0 otherwise</td></tr>
+          <tr><td><span class="col-name">castrados</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">Number of sterilized animals — 0 for non-brigade sources</td></tr>
+          <tr><td><span class="col-name">potencialmente_peligroso</span></td><td><span class="type-badge">Integer</span></td><td style="color:var(--muted);">1 if classified as potentially dangerous breed</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 04 STATS -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 04</p>
+    <h2 class="sec-title">Unified Dataset Statistics</h2>
+    <p class="sec-body">After cleaning and integration, the final dataset contains <strong>17,742 records</strong> across <strong>16 columns</strong>, covering two Colombian cities and five event types.</p>
+
+    <div class="stats-strip">
+      <div class="stat-cell"><div class="stat-val">17<span class="sa">,742</span></div><div class="stat-lbl">Total records</div></div>
+      <div class="stat-cell"><div class="stat-val">16</div><div class="stat-lbl">Unified columns</div></div>
+      <div class="stat-cell"><div class="stat-val">5</div><div class="stat-lbl">Source datasets</div></div>
+      <div class="stat-cell"><div class="stat-val">2</div><div class="stat-lbl">Colombian cities</div></div>
+      <div class="stat-cell"><div class="stat-val">16<span class="sa">,897</span></div><div class="stat-lbl">Microchip records</div></div>
+      <div class="stat-cell"><div class="stat-val">3<span class="sa">,244</span></div><div class="stat-lbl">Abuse cases</div></div>
+      <div class="stat-cell"><div class="stat-val">947</div><div class="stat-lbl">Vet emergencies</div></div>
+      <div class="stat-cell"><div class="stat-val">785</div><div class="stat-lbl">Adoptions — Cali</div></div>
+    </div>
+
+    <h3 style="font-family:var(--outfit);font-size:1rem;font-weight:600;color:var(--text);margin-top:2.5rem;margin-bottom:0.6rem;">Null Value Handling</h3>
+    <p class="sec-body" style="margin-bottom:0;">No records were dropped due to nulls. The strategy was to impute with sentinel values or set to NaT to retain all data while flagging incompleteness.</p>
+    <div class="null-table-wrap">
+      <table class="null-table">
+        <thead><tr><th>Column / Dataset</th><th>Null Count</th><th>Treatment</th><th>Decision rationale</th></tr></thead>
+        <tbody>
+          <tr><td>Cali — Comuna/Corregimiento</td><td style="color:var(--muted);">63</td><td><span class="treatment-badge fill">Fill → SIN_DATO</span></td><td style="color:var(--muted);font-size:0.78rem;">Event data is complete — only geography is missing</td></tr>
+          <tr><td>Cali — Barrio/Centro poblado</td><td style="color:var(--muted);">11</td><td><span class="treatment-badge fill">Fill → SIN_DATO</span></td><td style="color:var(--muted);font-size:0.78rem;">Commune is still available for spatial analysis</td></tr>
+          <tr><td>Microchip — fecha</td><td style="color:var(--muted);">16,897</td><td><span class="treatment-badge nat">Set to NaT</span></td><td style="color:var(--muted);font-size:0.78rem;">Dataset has no date field by design — not a data error</td></tr>
+          <tr><td>Bogotá datasets — barrio</td><td style="color:var(--muted);">All rows</td><td><span class="treatment-badge fill">Fill → SIN_DATO</span></td><td style="color:var(--muted);font-size:0.78rem;">Aggregated data — no row-level address exists</td></tr>
+          <tr><td>Microchip — SIN IDENTIFICAR locality</td><td style="color:var(--muted);">6,476</td><td><span class="treatment-badge drop">Removed</span></td><td style="color:var(--muted);font-size:0.78rem;">No geographic reference — unusable for spatial analysis</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 05 NEXT -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 05</p>
+    <h2 class="sec-title">Feeding into Model Engineering</h2>
+    <p class="sec-body">The unified dataset provides the foundation for Phase 3. Three algorithms were selected based on data structure, scale, and the analytical goals of PetWatch.</p>
+    <div class="algo-grid">
+      <div class="algo-card" style="--algo-color:#7de8a0;">
+        <p class="algo-num">PHASE 03 — MODEL A</p>
+        <p class="algo-name">Random Forest</p>
+        <p class="algo-role">Primary classifier — predicts abandonment risk level per zone and ranks feature importance across all 16 variables.</p>
+        <a href="{{ url_for('randomForest') }}" class="algo-link">View model &#8594;</a>
+      </div>
+      <div class="algo-card" style="--algo-color:#5ab4e8;">
+        <p class="algo-num">PHASE 03 — MODEL B</p>
+        <p class="algo-name">Logistic Regression</p>
+        <p class="algo-role">Binary baseline — produces probability scores for HIGH vs LOW risk per locality with interpretable coefficients.</p>
+        <a href="{{ url_for('logisticRegressionPW') }}" class="algo-link">View model &#8594;</a>
+      </div>
+      <div class="algo-card" style="--algo-color:#e8935a;">
+        <p class="algo-num">PHASE 03 — MODEL C</p>
+        <p class="algo-name">K-Means Clustering</p>
+        <p class="algo-role">Unsupervised geographic analysis — groups localities into risk tiers based on multi-dimensional welfare profiles.</p>
+        <a href="{{ url_for('kmeans') }}" class="algo-link">View model &#8594;</a>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- Synthetic Dataset Section -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Section 05 &mdash; Synthetic Dataset</p>
+    <h2 class="sec-title">Synthetic Dataset — Optimized for Machine Learning</h2>
+    <p class="sec-body">
+      The synthetic dataset was specifically designed to address the limitations of the unified real dataset for machine learning training.
+      While the unified dataset contains authentic records from institutional sources, its real-world noise, missing values, and inconsistent distributions
+      make it suboptimal for training a high-accuracy classifier. The synthetic dataset solves this by generating
+      <strong>6,500 records</strong> with statistically realistic correlations, controlled class balance, and clean variable distributions.
+    </p>
+
+    <!-- Comparison table -->
+    <div style="margin-top:1.8rem;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+        <thead>
+          <tr style="background:var(--surface2);">
+            <th style="padding:.65rem 1rem;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:1px solid var(--border);">Property</th>
+            <th style="padding:.65rem 1rem;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);text-align:left;border-bottom:1px solid var(--border);">Unified Dataset</th>
+            <th style="padding:.65rem 1rem;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent2);text-align:left;border-bottom:1px solid var(--border);">Synthetic Dataset</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:var(--surface);"><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);">Records</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent);font-weight:600;">~14,000+</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent2);font-weight:600;">6,500</td></tr>
+          <tr style="background:var(--surface2);"><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);">Columns</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent);">16</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent2);">15</td></tr>
+          <tr style="background:var(--surface);"><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);">Missing values</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--danger);">Yes — requires imputation</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent3);">None — clean by design</td></tr>
+          <tr style="background:var(--surface2);"><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);">Class balance</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--danger);">Heavily skewed</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent3);">Controlled distribution</td></tr>
+          <tr style="background:var(--surface);"><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);">Feature correlations</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent);">Weak / inconsistent</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent2);">Strong / realistic</td></tr>
+          <tr style="background:var(--surface2);"><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--muted);">RF Model Accuracy</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent);">~72%</td><td style="padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--accent2);font-weight:700;">96.8% train / 94.3% CV</td></tr>
+          <tr style="background:var(--surface);"><td style="padding:.6rem 1rem;color:var(--muted);">Used for training</td><td style="padding:.6rem 1rem;color:var(--danger);">No — exploratory only</td><td style="padding:.6rem 1rem;color:var(--accent3);font-weight:600;">Yes — final model</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 15 variables grid -->
+    <p class="sec-body" style="margin-top:1.8rem;"><strong>15 variables of the synthetic dataset:</strong></p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.8rem;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">locality</div><div style="font-size:.7rem;color:var(--muted);">Zone name (20 Bogotá localities)</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">species</div><div style="font-size:.7rem;color:var(--muted);">Animal species (dog, cat, bird…)</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">month / year</div><div style="font-size:.7rem;color:var(--muted);">Temporal window (2021–2024)</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">socioeconomic_stratum</div><div style="font-size:.7rem;color:var(--muted);">Socioeconomic level 1–6</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">citizen_reports</div><div style="font-size:.7rem;color:var(--muted);">Citizen-filed stray animal reports</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">abuse_cases</div><div style="font-size:.7rem;color:var(--muted);">Confirmed animal abuse incidents</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">animals_seized</div><div style="font-size:.7rem;color:var(--muted);">Animals apprehended by authorities</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">vet_emergencies</div><div style="font-size:.7rem;color:var(--muted);">Emergency veterinary interventions</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--danger);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--danger);margin-bottom:.2rem;">microchip_coverage</div><div style="font-size:.7rem;color:var(--muted);">% microchipped — strongest predictor (44%)</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">sterilization_rate</div><div style="font-size:.7rem;color:var(--muted);">% sterilized animals in zone</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--danger);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--danger);margin-bottom:.2rem;">stray_density</div><div style="font-size:.7rem;color:var(--muted);">Stray animals per km² — 2nd predictor (29%)</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">prior_cases_6m</div><div style="font-size:.7rem;color:var(--muted);">Cases reported in last 6 months</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.75rem;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent2);margin-bottom:.2rem;">institutional_response_days</div><div style="font-size:.7rem;color:var(--muted);">Avg days to institutional action</div></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent3);border-radius:6px;padding:.75rem;grid-column:span 2;"><div style="font-family:var(--outfit);font-size:.7rem;font-weight:700;color:var(--accent3);margin-bottom:.2rem;">abandonment_risk — TARGET</div><div style="font-size:.7rem;color:var(--muted);">HIGH / MEDIUM / LOW — class label predicted by Random Forest</div></div>
+    </div>
+
+    <p class="sec-body" style="margin-top:1.8rem;">
+      <strong>Why the synthetic dataset outperforms the unified dataset for training:</strong>
+      the unified dataset, while valuable for understanding the data collection process and justifying feature selection,
+      contains real-world noise, duplicates, and weak label-feature correlations that limit classifier performance.
+      By designing the synthetic dataset with explicit causal relationships between features and the target variable
+      (microchip_coverage negatively correlated with risk, stray_density positively correlated),
+      the Random Forest model achieves <strong>96.8% training accuracy</strong> and <strong>94.3% cross-validated accuracy</strong> —
+      a significant improvement over the ~72% achieved with the unified dataset.
+    </p>
+  </section>
+
+</div>
+
+
+<footer class="pw-footer">
+  <div><p class="footer-brand">PetWatch</p><p class="footer-sub">Machine Learning &middot; CRISP-ML &middot; Phase 02 — Data Engineering</p></div>
+  <div class="footer-members">
+    <span class="footer-member">Elkin Yamith Almonacid López</span>
+    <span class="footer-member">Brayan David Cuitiva Umbarila</span>
+    <span class="footer-member">Brayan Yair Mendez Rodriguez</span>
+    <span class="footer-univ">Universidad de Cundinamarca</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 80);
+  });
+  function toggleDs(id) {
+    const card = document.getElementById(id);
+    const isOpen = card.classList.contains('open');
+    document.querySelectorAll('.ds-card').forEach(c => c.classList.remove('open'));
+    if (!isOpen) card.classList.add('open');
+  }
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.06 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
