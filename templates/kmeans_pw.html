@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PetWatch — K-Means Clustering</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0a0b0f;--bg2:#0f1118;--surface:#13151e;--surface2:#191c28;
+      --border:#1e2235;--text:#eceef5;--muted:#5a5f7a;
+      --accent:#e8935a;--accent2:#5ab4e8;--accent3:#7de8a0;--danger:#e85a6a;
+      --p3:#7de8a0;--pkm:#e8935a;
+      --outfit:'Outfit',sans-serif;--dm:'DM Sans',sans-serif;
+      --tr:0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:var(--dm);overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:0.4;}
+
+    .pw-nav{position:fixed;top:0;left:0;right:0;z-index:900;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,11,15,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
+    .pw-nav-logo{font-family:var(--outfit);font-size:1.2rem;font-weight:800;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:0.5rem;}
+    .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--p3);display:inline-block;animation:pulse-dot 2s ease-in-out infinite;}
+    @keyframes pulse-dot{0%,100%{transform:scale(1);}50%{transform:scale(1.4);opacity:0.7;}}
+    .pw-nav-links{display:flex;align-items:center;gap:0.1rem;list-style:none;}
+    .pw-nav-links a{font-size:0.7rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);text-decoration:none;padding:0.38rem 0.6rem;border-radius:4px;transition:color var(--tr),background var(--tr);white-space:nowrap;}
+    .pw-nav-links a:hover,.pw-nav-links a.active{color:var(--text);background:rgba(255,255,255,0.05);}
+    .phase-badge{font-size:0.56rem;font-weight:600;background:var(--p3);color:#000;padding:0.1rem 0.28rem;border-radius:3px;margin-left:0.2rem;vertical-align:middle;}
+    .pw-nav-cta{font-family:var(--outfit);font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#000;background:var(--p3);padding:0.42rem 0.9rem;border-radius:4px;text-decoration:none;}
+    .pw-nav-cta:hover{opacity:0.85;color:#000;}
+
+    .page-wrap{padding:6rem 5vw 4rem;max-width:960px;margin:0 auto;}
+    .back-link{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);text-decoration:none;margin-bottom:2rem;transition:color var(--tr);}
+    .back-link:hover{color:var(--text);}
+    .page-eyebrow{font-size:0.66rem;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:var(--pkm);margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;}
+    .page-eyebrow::before{content:'';width:20px;height:1px;background:var(--pkm);}
+    .page-title{font-family:var(--outfit);font-size:clamp(2rem,5vw,3.5rem);font-weight:700;letter-spacing:-0.02em;line-height:1.1;color:var(--text);margin-bottom:0.75rem;}
+    .page-sub{font-size:0.9rem;font-weight:300;color:var(--muted);line-height:1.75;max-width:620px;margin-bottom:2.5rem;}
+    .page-sub strong{color:var(--text);font-weight:500;}
+
+    .section{padding:3rem 0;border-bottom:1px solid var(--border);}
+    .section:last-child{border-bottom:none;}
+    .sec-eyebrow{font-size:0.6rem;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--pkm);margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem;}
+    .sec-eyebrow::before{content:'';width:14px;height:1px;background:var(--pkm);}
+    .sec-title{font-family:var(--outfit);font-size:1.3rem;font-weight:700;letter-spacing:-0.02em;color:var(--text);margin-bottom:0.8rem;}
+    .sec-body{font-size:0.85rem;font-weight:300;color:var(--muted);line-height:1.8;max-width:680px;}
+    .sec-body strong{color:var(--text);font-weight:500;}
+
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:1.5rem;}
+    .stat-cell{background:var(--surface);padding:1.2rem 1rem;text-align:center;}
+    .stat-val{font-family:var(--outfit);font-size:1.6rem;font-weight:800;color:var(--pkm);line-height:1;}
+    .stat-lbl{font-size:0.6rem;font-weight:400;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-top:0.3rem;}
+
+    /* Cluster cards */
+    .cluster-row{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-top:1.5rem;}
+    .cluster-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.4rem;position:relative;overflow:hidden;}
+    .cluster-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--cc);}
+    .cluster-label{font-family:var(--outfit);font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--cc);margin-bottom:0.4rem;}
+    .cluster-count{font-family:var(--outfit);font-size:1.6rem;font-weight:800;color:var(--text);line-height:1;margin-bottom:0.25rem;}
+    .cluster-sub{font-size:0.7rem;font-weight:300;color:var(--muted);}
+    .cluster-stats{margin-top:0.8rem;display:flex;flex-direction:column;gap:0.25rem;}
+    .cluster-stat-row{display:flex;justify-content:space-between;font-size:0.74rem;}
+    .cluster-stat-key{color:var(--muted);}
+    .cluster-stat-val{font-family:var(--outfit);font-weight:600;color:var(--text);}
+
+    .chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.4rem;margin-top:1.5rem;}
+    .chart-title{font-family:var(--outfit);font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
+    .chart-container{position:relative;height:280px;}
+
+    .loc-table-wrap{margin-top:1.5rem;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+    .loc-table{width:100%;border-collapse:collapse;}
+    .loc-table thead tr{background:var(--surface2);border-bottom:1px solid var(--border);}
+    .loc-table th{font-family:var(--outfit);font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:0.75rem 1rem;text-align:left;}
+    .loc-table td{font-size:0.8rem;font-weight:300;padding:0.7rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+    .loc-table tr:last-child td{border-bottom:none;}
+    .loc-table tr:hover td{background:rgba(255,255,255,0.02);}
+    .risk-pill{font-size:0.65rem;font-weight:700;letter-spacing:0.06em;border-radius:3px;padding:0.18rem 0.5rem;}
+    .risk-pill.HIGH{background:rgba(232,90,106,0.15);color:var(--danger);border:1px solid rgba(232,90,106,0.3);}
+    .risk-pill.MEDIUM{background:rgba(232,147,90,0.15);color:var(--accent);border:1px solid rgba(232,147,90,0.3);}
+    .risk-pill.LOW{background:rgba(125,232,160,0.12);color:var(--p3);border:1px solid rgba(125,232,160,0.25);}
+
+    .pw-footer{border-top:1px solid var(--border);padding:2rem 5vw;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-top:2rem;}
+    .footer-brand{font-family:var(--outfit);font-size:0.9rem;font-weight:800;color:var(--text);}
+    .footer-sub{font-size:0.68rem;font-weight:300;color:var(--muted);}
+    .footer-members{display:flex;flex-direction:column;align-items:flex-end;gap:0.18rem;}
+    .footer-member{font-size:0.7rem;font-weight:300;color:var(--muted);}
+    .footer-univ{font-family:var(--outfit);font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-top:0.1rem;}
+
+    .reveal{opacity:0;transform:translateY(16px);transition:opacity 0.6s ease,transform 0.6s ease;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+    @media(max-width:768px){.stats-row{grid-template-columns:repeat(2,1fr);}.cluster-row{grid-template-columns:1fr;}.pw-footer{flex-direction:column;align-items:flex-start;}.footer-members{align-items:flex-start;}}
+  </style>
+</head>
+<body>
+
+<nav class="pw-nav">
+  <a href="{{ url_for('home') }}" class="pw-nav-logo"><span class="logo-dot"></span>PetWatch</a>
+  <ul class="pw-nav-links">
+    <li><a href="{{ url_for('businessUnderstanding') }}">Business <span class="phase-badge">P1</span></a></li>
+    <li><a href="{{ url_for('dataEngineering') }}">Data Eng. <span class="phase-badge">P2</span></a></li>
+    <li><a href="{{ url_for('modelEngineering') }}" class="active">Models <span class="phase-badge">P3</span></a></li>
+    <li><a href="{{ url_for('modelEvaluation') }}">Evaluation <span class="phase-badge">P4</span></a></li>
+    <li><a href="{{ url_for('deployment') }}">Deployment <span class="phase-badge">P5</span></a></li>
+    <li><a href="{{ url_for('monitoring') }}">Monitoring <span class="phase-badge">P6</span></a></li>
+  </ul>
+  <a href="{{ url_for('modelEngineering') }}" class="pw-nav-cta">Run Model</a>
+</nav>
+
+<div class="page-wrap">
+  <a href="{{ url_for('modelEngineering') }}" class="back-link">&#8592; Model Engineering</a>
+  <p class="page-eyebrow">Phase 03 &mdash; Model C</p>
+  <h1 class="page-title">K-Means Clustering</h1>
+  <p class="page-sub">Unsupervised algorithm grouping <strong>{{ n_localities }} Bogotá localities</strong> into <strong>K={{ k }} risk clusters</strong> based on their multi-dimensional animal welfare profiles — without using predefined labels. SSE (inertia): <strong>{{ inertia }}</strong>.</p>
+
+  <div class="stats-row reveal">
+    <div class="stat-cell"><div class="stat-val">K={{ k }}</div><div class="stat-lbl">Clusters</div></div>
+    <div class="stat-cell"><div class="stat-val">{{ inertia }}</div><div class="stat-lbl">SSE (inertia)</div></div>
+    <div class="stat-cell"><div class="stat-val">{{ counts.HIGH }}</div><div class="stat-lbl">HIGH risk zones</div></div>
+    <div class="stat-cell"><div class="stat-val">{{ n_localities }}</div><div class="stat-lbl">Localities analyzed</div></div>
+  </div>
+
+  <!-- Cluster profiles -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Cluster Profiles</p>
+    <h2 class="sec-title">Centroid characteristics per cluster</h2>
+    <p class="sec-body">Each centroid represents the average welfare profile of localities in that cluster. Values are in the original (non-scaled) feature space.</p>
+    <div class="cluster-row">
+      {% for c in centroids %}
+      <div class="cluster-card" style="--cc:{{ c.color }};">
+        <p class="cluster-label">{{ c.label }} risk cluster</p>
+        <p class="cluster-count">{{ counts[c.label] }}</p>
+        <p class="cluster-sub">localities</p>
+        <div class="cluster-stats">
+          {% for key, val in c.items() %}
+          {% if key not in ['label','color'] %}
+          <div class="cluster-stat-row">
+            <span class="cluster-stat-key">{{ key }}</span>
+            <span class="cluster-stat-val">{{ val }}</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Cluster distribution chart -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Distribution</p>
+    <h2 class="sec-title">Localities per cluster</h2>
+    <div class="chart-wrap">
+      <p class="chart-title">Cluster assignment counts</p>
+      <div class="chart-container"><canvas id="clusterChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- Locality assignments -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Cluster Assignments</p>
+    <h2 class="sec-title">Locality cluster membership</h2>
+    <p class="sec-body">Each locality's assigned risk cluster, sorted from HIGH to LOW. Unlike supervised models, these labels were <strong>not predefined</strong> — they emerged from the data structure.</p>
+    <div class="loc-table-wrap">
+      <table class="loc-table">
+        <thead>
+          <tr><th>Locality</th><th>Cluster</th><th>Cluster #</th><th>Abuse</th><th>Emergencies</th><th>Microchip %</th><th>Stray Density</th></tr>
+        </thead>
+        <tbody>
+          {% for loc in localities %}
+          <tr>
+            <td style="font-weight:500;color:var(--text);">{{ loc.name }}</td>
+            <td><span class="risk-pill {{ loc.label }}">{{ loc.label }}</span></td>
+            <td style="font-family:var(--outfit);color:var(--muted);">{{ loc.cluster }}</td>
+            <td style="color:var(--muted);">{{ loc.maltrato }}</td>
+            <td style="color:var(--muted);">{{ loc.urgencias }}</td>
+            <td style="color:var(--muted);">{{ loc.microchip }}</td>
+            <td style="color:var(--muted);">{{ loc.stray_density }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Algorithm details -->
+  <section class="section reveal">
+    <p class="sec-eyebrow">Algorithm Details</p>
+    <h2 class="sec-title">How K-Means works here</h2>
+    <p class="sec-body">K-Means initializes <strong>{{ k }} centroids</strong>, assigns each locality to the nearest one by Euclidean distance, recalculates centroids as the mean of assigned localities, and repeats until convergence. Features were normalized using <strong>StandardScaler</strong> to prevent scale dominance.</p>
+    <p class="sec-body" style="margin-top:0.75rem;">Risk labels (HIGH / MEDIUM / LOW) were assigned post-clustering by ranking clusters on mean abuse level — the cluster with the highest average abuse cases became HIGH, the lowest became LOW. <strong>n_init={{ n_init }}</strong> random initializations were run to find the optimal solution.</p>
+  </section>
+</div>
+
+<footer class="pw-footer">
+  <div><p class="footer-brand">PetWatch</p><p class="footer-sub">Machine Learning &middot; CRISP-ML &middot; Phase 03 — K-Means Clustering</p></div>
+  <div class="footer-members">
+    <span class="footer-member">Elkin Yamith Almonacid López</span>
+    <span class="footer-member">Brayan David Cuitiva Umbarila</span>
+    <span class="footer-member">Brayan Yair Mendez Rodriguez</span>
+    <span class="footer-univ">Universidad de Cundinamarca</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  new Chart(document.getElementById('clusterChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['HIGH', 'MEDIUM', 'LOW'],
+      datasets: [{
+        data: [{{ counts.HIGH }}, {{ counts.MEDIUM }}, {{ counts.LOW }}],
+        backgroundColor: ['rgba(232,90,106,0.75)','rgba(232,147,90,0.75)','rgba(125,232,160,0.7)'],
+        borderColor: ['#e85a6a','#e8935a','#7de8a0'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { position:'right', labels:{ font:{family:'Outfit',size:12}, color:'#5a5f7a', padding:16 } },
+        tooltip: { callbacks:{ label: ctx => ' ' + ctx.raw + ' localities' },
+          titleFont:{family:'Outfit',size:12}, bodyFont:{family:'DM Sans',size:12} }
+      }
+    }
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((e,i) => { if(e.isIntersecting){ setTimeout(()=>e.target.classList.add('visible'),i*80); observer.unobserve(e.target); } });
+  },{threshold:0.06});
+  document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>
