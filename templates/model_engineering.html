@@ -290,11 +290,11 @@
             <p class="mc-tag">Model A &mdash; Supervised</p>
             <h3 class="mc-name">Random Forest</h3>
             <span class="mc-type">Multi-class Classification</span>
-            <p class="mc-desc">Ensemble of 100 decision trees predicting HIGH / MEDIUM / LOW abandonment risk per locality. Provides feature importance to identify which variables drive risk most.</p>
+            <p class="mc-desc">Ensemble of 50 decision trees predicting HIGH / MEDIUM / LOW abandonment risk per locality. Provides feature importance to identify which variables drive risk most.</p>
           </div>
           <div class="mc-right">
-            <div><div class="mc-stat-val">100%</div><div class="mc-stat-lbl">Training accuracy</div></div>
-            <div style="margin-top:0.5rem;"><div class="mc-stat-val">6</div><div class="mc-stat-lbl">Features</div></div>
+            <div><div class="mc-stat-val">96.5%</div><div class="mc-stat-lbl">Training accuracy</div></div>
+            <div style="margin-top:0.5rem;"><div class="mc-stat-val">9</div><div class="mc-stat-lbl">Features</div></div>
           </div>
         </div>
         <span class="mc-arrow-link" style="--mc:#7de8a0;">View full results &#8594;</span>
@@ -310,8 +310,8 @@
             <p class="mc-desc">Binary classifier (HIGH vs LOW/MEDIUM) with interpretable coefficients and probability scores per locality. Serves as the interpretable baseline for model comparison.</p>
           </div>
           <div class="mc-right">
-            <div><div class="mc-stat-val">80.6%</div><div class="mc-stat-lbl">Training accuracy</div></div>
-            <div style="margin-top:0.5rem;"><div class="mc-stat-val">6</div><div class="mc-stat-lbl">Features</div></div>
+            <div><div class="mc-stat-val">97.0%</div><div class="mc-stat-lbl">Training accuracy</div></div>
+            <div style="margin-top:0.5rem;"><div class="mc-stat-val">9</div><div class="mc-stat-lbl">Features</div></div>
           </div>
         </div>
         <span class="mc-arrow-link" style="--mc:#5ab4e8;">View full results &#8594;</span>
@@ -328,7 +328,7 @@
           </div>
           <div class="mc-right">
             <div><div class="mc-stat-val">K=3</div><div class="mc-stat-lbl">Clusters</div></div>
-            <div style="margin-top:0.5rem;"><div class="mc-stat-val">6</div><div class="mc-stat-lbl">Features</div></div>
+            <div style="margin-top:0.5rem;"><div class="mc-stat-val">9</div><div class="mc-stat-lbl">Features</div></div>
           </div>
         </div>
         <span class="mc-arrow-link" style="--mc:#e8935a;">View full results &#8594;</span>
@@ -552,7 +552,7 @@
       const rfEl    = document.getElementById('rf-label');
       rfEl.textContent = rfLabel;
       rfEl.className   = 'result-label ' + riskClass(rfLabel);
-      document.getElementById('rf-sub').textContent = 'Predicted by Random Forest (200 trees, 9 features)';
+      document.getElementById('rf-sub').textContent = 'Predicted by Random Forest (50 trees, 9 features)';
 
       const rfProbaEl = document.getElementById('rf-proba');
       rfProbaEl.innerHTML = '';
